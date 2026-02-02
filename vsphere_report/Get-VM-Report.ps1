@@ -145,7 +145,7 @@ $HtmlHead = @"
 <head>
 <meta charset='UTF-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-<title>vSphere 8 Health Report</title>
+<title>vSphere Health Report</title>
 <style>
     :root {
         --primary: #005bb7;
@@ -272,5 +272,6 @@ Write-Host ">>> Process Complete." -ForegroundColor Cyan
 Remove-Variable SessionId -ErrorAction SilentlyContinue
 Remove-Variable Headers -ErrorAction SilentlyContinue
 Remove-Variable Creds -ErrorAction SilentlyContinue
+
 
 exit
