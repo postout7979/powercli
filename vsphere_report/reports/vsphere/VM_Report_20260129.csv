@@ -1,0 +1,210 @@
+﻿=====================================================
+ NSX INFRASTRUCTURE HEALTH CHECK - COMBINED REPORT
+ Generated At : 2026-01-29 22:31:40
+ Target Server: 
+=====================================================
+
+[ SECTION : 01_vSphereSummary ]
+-----------------------------------------------------
+"Total Datacenters","Total Clusters","Total Hosts","Total VMs"
+"1","1","3 (Connected: 3)","43 (Powered On: 40)"
+
+[ SECTION : 02_vSphereInventorymap ]
+-----------------------------------------------------
+"Datacenter","Cluster","HostName","vmk0_IP","Version","Status"
+"Datacenter","Cluster","fu-01.vks.lab","172.18.10.31","8.0.3 (Build 24022510)","OK"
+"Datacenter","Cluster","fu-02.vks.lab","172.18.10.32","8.0.3 (Build 24022510)","OK"
+"Datacenter","Cluster","fu-03.vks.lab","172.18.10.33","8.0.3 (Build 24022510)","OK"
+
+[ SECTION : 03_Host_CPUOvercommit ]
+-----------------------------------------------------
+"HostName","Sockets","pCores","vCPUs","Ratio","Status"
+"fu-03.vks.lab","2","24","145","1:6.04","CRITICAL: High (1:6.04)"
+"fu-01.vks.lab","2","24","131","1:5.46","CRITICAL: High (1:5.46)"
+"fu-02.vks.lab","2","24","56","1:2.33","OK"
+
+[ SECTION : 04_VM_status ]
+-----------------------------------------------------
+"VMName","PowerState","GuestOS","vCPU","vMEM","Hardware"
+"avi","poweredOn","Ubuntu Linux (64-bit)","8 vCPU","24 GB","vmx-11"
+"avi-controller","poweredOn","Ubuntu Linux (64-bit)","8 vCPU","24 GB","vmx-11"
+"Avi-se-aepjn","poweredOn","Ubuntu Linux (64-bit)","4 vCPU","8 GB","vmx-11"
+"Avi-se-jpevr","poweredOn","Ubuntu Linux (64-bit)","4 vCPU","8 GB","vmx-11"
+"dns","poweredOn","Microsoft Windows Server 2019 (64-bit)","4 vCPU","8 GB","vmx-21"
+"EDGE01","poweredOn","Ubuntu Linux (64-bit)","4 vCPU","8 GB","vmx-21"
+"EDGE02","poweredOn","Ubuntu Linux (64-bit)","4 vCPU","8 GB","vmx-21"
+"harbor-2-10-3","poweredOn","VMware Photon OS (64-bit)","4 vCPU","8 GB","vmx-15"
+"kdw-iperf3","poweredOn","Microsoft Windows Server 2019 (64-bit)","4 vCPU","8 GB","vmx-21"
+"kdw-jumpbox","poweredOn","Microsoft Windows Server 2019 (64-bit)","4 vCPU","8 GB","vmx-21"
+"nc-cluster01-kdfxj-fnqx4","poweredOn","VMware Photon OS (64-bit)","4 vCPU","8 GB","vmx-21"
+"nc-cluster01-md-thfgh-whphn-m7tsp","poweredOn","VMware Photon OS (64-bit)","4 vCPU","8 GB","vmx-21"
+"nc-cluster01-md-thfgh-whphn-qkqwm","poweredOn","VMware Photon OS (64-bit)","4 vCPU","8 GB","vmx-21"
+"nc-cluster01-md-thfgh-whphn-wwqkk","poweredOn","VMware Photon OS (64-bit)","4 vCPU","8 GB","vmx-21"
+"nsx01","poweredOn","Ubuntu Linux (64-bit)","6 vCPU","24 GB","vmx-13"
+"ssk-alb","poweredOn","Ubuntu Linux (64-bit)","8 vCPU","24 GB","vmx-11"
+"ssk-esxi","poweredOff","VMware ESXi 8.0 or later","16 vCPU","64 GB","vmx-21"
+"ssk-esxi-1","poweredOn","VMware ESXi 8.0 or later","16 vCPU","64 GB","vmx-21"
+"ssk-esxi-2","poweredOn","VMware ESXi 8.0 or later","16 vCPU","64 GB","vmx-21"
+"ssk-esxi-3","poweredOn","VMware ESXi 8.0 or later","16 vCPU","64 GB","vmx-21"
+"ssk-esxi-templete","poweredOff","VMware ESXi 8.0 or later","16 vCPU","64 GB","vmx-21"
+"ssk-ubuntu-24.04-templete","poweredOff","Ubuntu Linux (64-bit)","2 vCPU","4 GB","vmx-21"
+"ssk-util","poweredOn","Ubuntu Linux (64-bit)","4 vCPU","16 GB","vmx-21"
+"ssk-vc","poweredOn","Other 3.x or later Linux (64-bit)","2 vCPU","14 GB","vmx-10"
+"ssk-vks-jump-host","poweredOn","Ubuntu Linux (64-bit)","4 vCPU","16 GB","vmx-21"
+"SupervisorControlPlaneVM (1)","poweredOn","Other 3.x Linux (64-bit)","4 vCPU","16 GB","vmx-17"
+"SupervisorControlPlaneVM (2)","poweredOn","Other 3.x Linux (64-bit)","4 vCPU","16 GB","vmx-17"
+"SupervisorControlPlaneVM (3)","poweredOn","Other 3.x Linux (64-bit)","4 vCPU","16 GB","vmx-17"
+"vc","poweredOn","Other 3.x or later Linux (64-bit)","8 vCPU","30 GB","vmx-10"
+"vCLS-4aa2bbcc-7791-1413-88ae-4c52624d2d83","poweredOn","VMware Photon CRX (64-bit)","1 vCPU","0.2 GB","vmx-21"
+"vCLS-ca627da3-72b4-1413-be01-4c52624dbd83","poweredOn","VMware Photon CRX (64-bit)","1 vCPU","0.2 GB","vmx-21"
+"YNH-ESXi01","poweredOn","VMware ESXi 8.0 or later","16 vCPU","64 GB","vmx-21"
+"YNH-ESXi02","poweredOn","VMware ESXi 8.0 or later","16 vCPU","64 GB","vmx-21"
+"YNH-ESXi03","poweredOn","VMware ESXi 8.0 or later","16 vCPU","64 GB","vmx-21"
+"ynh-harbor","poweredOn","VMware Photon OS (64-bit)","4 vCPU","8 GB","vmx-15"
+"ynh-rhel01","poweredOn","Ubuntu Linux (64-bit)","8 vCPU","16 GB","vmx-21"
+"ynh-vc","poweredOn","Other 3.x or later Linux (64-bit)","2 vCPU","14 GB","vmx-10"
+"yun-alb","poweredOn","Ubuntu Linux (64-bit)","8 vCPU","24 GB","vmx-11"
+"yun-dns","poweredOn","Microsoft Windows Server 2019 (64-bit)","4 vCPU","8 GB","vmx-21"
+"yun-esxi01","poweredOn","VMware ESXi 8.0 or later","32 vCPU","32 GB","vmx-21"
+"yun-esxi02","poweredOn","VMware ESXi 8.0 or later","32 vCPU","32 GB","vmx-21"
+"yun-esxi03","poweredOn","VMware ESXi 8.0 or later","32 vCPU","32 GB","vmx-21"
+"yun-vc","poweredOn","Other 3.x or later Linux (64-bit)","4 vCPU","21 GB","vmx-10"
+
+[ SECTION : 05_vSphere_Service_status ]
+-----------------------------------------------------
+"HostName","FQDN","SSH_Running","NTPServers","NTP_Running"
+"fu-01.vks.lab","fu-01.","Running","172.17.10.101","Running"
+"fu-02.vks.lab","fu-02.","Running","172.17.10.101","Running"
+"fu-03.vks.lab","fu-03.","Stopped","172.17.10.101","Running"
+
+[ SECTION : 06_vsphere_DRS_status ]
+-----------------------------------------------------
+"ClusterName","HA Status","DRS Status","DRS Mode"
+"Cluster","Enabled","Enabled","fullyAutomated"
+
+[ SECTION : 07_Applied_DRS_Rule ]
+-----------------------------------------------------
+"Cluster","RuleName","Type","Status","VMCount","VMList"
+"Cluster","test-rule","VM Anti-Affinity (Separate)","Enabled","0","N/A"
+
+[ SECTION : 08_vsphere_certificate ]
+-----------------------------------------------------
+"HostName","ExpiryDate","DaysRemaining","Status","Issuer"
+"fu-03.vks.lab","2031-01-15","1811","GOOD","OU=VMware Engineering, O=vc.vks.lab, S=California, C=US, DC=local, DC=vsphere, CN=CA"
+"fu-02.vks.lab","2031-01-15","1811","GOOD","OU=VMware Engineering, O=vc.vks.lab, S=California, C=US, DC=local, DC=vsphere, CN=CA"
+"fu-01.vks.lab","2031-01-15","1811","GOOD","OU=VMware Engineering, O=vc.vks.lab, S=California, C=US, DC=local, DC=vsphere, CN=CA"
+
+[ SECTION : 09_vsphere_datastore ]
+-----------------------------------------------------
+"Name","Type","Health","Total(GB)","Used(GB)","Free(GB)","Used(%)"
+"datastore1","VMFS","GOOD","318","1.4","316.6","0.4%"
+"datastore1 (1)","VMFS","GOOD","318","1.4","316.6","0.4%"
+"datastore1 (2)","VMFS","GOOD","318","92.9","225.1","29.2%"
+"ISOArchive","NFS","WARN: High Usage (83.0%)","1920","1593","327","83.0%"
+"vsanDatastore","VSAN","WARN","16096.4","8014.7","8081.7","49.8%"
+
+[ SECTION : 10_vSAN_Service ]
+-----------------------------------------------------
+"ClusterName","vSAN_Enabled","PerfService","StatsDB_Status","PolicyCompliance"
+"Cluster","True","Disabled","N/A (Disabled)","yellow"
+
+[ SECTION : 11_Lockdown_mode_status ]
+-----------------------------------------------------
+"HostName","ConnectionState","LockdownMode","Version","Build"
+"fu-01.vks.lab","connected","disabled","ESXi 8.0.3","24022510"
+"fu-02.vks.lab","connected","disabled","ESXi 8.0.3","24022510"
+"fu-03.vks.lab","connected","disabled","ESXi 8.0.3","24022510"
+
+[ SECTION : 12_Syslog_status ]
+-----------------------------------------------------
+"HostName","SyslogServer","ConfigStatus","Protocol"
+"fu-01.vks.lab","Unknown","WARN: Check Host","Unknown"
+"fu-02.vks.lab","Unknown","WARN: Check Host","Unknown"
+"fu-03.vks.lab","Unknown","WARN: Check Host","Unknown"
+
+[ SECTION : 13_Snapshot_status ]
+-----------------------------------------------------
+"VMName","SnapshotName","CreatedTime","Duration","SizeGB","Status","Description"
+"kdw-jumpbox","VM 스냅샷 2026. 1. 29. 오후 2:08:21","2026-01-29 14:08","0 Days, 8 Hours","35.18","ACTIVE (Recent)","-"
+"ssk-esxi-1","esxi-network","2026-01-29 17:32","0 Days, 4 Hours","2.09","ACTIVE (Recent)","-"
+"ssk-esxi-2","esxi-network","2026-01-29 17:33","0 Days, 4 Hours","1.93","ACTIVE (Recent)","-"
+"ssk-esxi-3","esxi-network","2026-01-29 17:33","0 Days, 4 Hours","2.00","ACTIVE (Recent)","-"
+
+[ SECTION : 14_Thick_provisioning_VMDK_status ]
+-----------------------------------------------------
+"VMName","DiskName","DiskType","SizeGB","FilePath"
+"ssk-vks-jump-host","Hard disk 1",,"0","[vsanDatastore] 56d26e69-583d-550b-c302-4c52624dbd84/SSK-VKS-Jump-host.vmdk"
+"YNH-ESXi02","Hard disk 1",,"0","[vsanDatastore] 37be7669-e846-c129-8e18-4c52624db805/YNH-ESXi02.vmdk"
+"YNH-ESXi02","Hard disk 2",,"0","[vsanDatastore] 37be7669-e846-c129-8e18-4c52624db805/YNH-ESXi02_1.vmdk"
+"YNH-ESXi02","Hard disk 3",,"0","[vsanDatastore] 37be7669-e846-c129-8e18-4c52624db805/YNH-ESXi02_2.vmdk"
+"YNH-ESXi03","Hard disk 1",,"0","[vsanDatastore] 8cbe7669-44d5-2f20-fd6f-4c52624d2d84/YNH-ESXi03.vmdk"
+"YNH-ESXi03","Hard disk 2",,"0","[vsanDatastore] 8cbe7669-44d5-2f20-fd6f-4c52624d2d84/YNH-ESXi03_1.vmdk"
+"YNH-ESXi03","Hard disk 3",,"0","[vsanDatastore] 8cbe7669-44d5-2f20-fd6f-4c52624d2d84/YNH-ESXi03_2.vmdk"
+"SupervisorControlPlaneVM (2)","Hard disk 1",,"32","[vsanDatastore] 46467869-24a1-fcdd-c58a-4c52624dbd84/SupervisorControlPlaneVM (2).vmdk"
+"SupervisorControlPlaneVM (3)","Hard disk 1",,"32","[vsanDatastore] 46467869-1cd4-9de2-f6f6-4c52624db805/SupervisorControlPlaneVM (3).vmdk"
+"SupervisorControlPlaneVM (1)","Hard disk 1",,"32","[vsanDatastore] 46467869-c872-d8c7-8c3a-4c52624d2d84/SupervisorControlPlaneVM (1).vmdk"
+"ssk-vc","Hard disk 1",,"48.56","[vsanDatastore] 9f197b69-e6dc-a1c1-70b1-4c52624db805/ssk-vc.vmdk"
+"ssk-vc","Hard disk 2",,"7.06","[vsanDatastore] 9f197b69-e6dc-a1c1-70b1-4c52624db805/ssk-vc_1.vmdk"
+"ssk-vc","Hard disk 3",,"25","[vsanDatastore] 9f197b69-e6dc-a1c1-70b1-4c52624db805/ssk-vc_2.vmdk"
+"ssk-vc","Hard disk 4",,"25","[vsanDatastore] 9f197b69-e6dc-a1c1-70b1-4c52624db805/ssk-vc_3.vmdk"
+"ssk-vc","Hard disk 5",,"10","[vsanDatastore] 9f197b69-e6dc-a1c1-70b1-4c52624db805/ssk-vc_4.vmdk"
+"ssk-vc","Hard disk 6",,"10","[vsanDatastore] 9f197b69-e6dc-a1c1-70b1-4c52624db805/ssk-vc_5.vmdk"
+"ssk-vc","Hard disk 7",,"15","[vsanDatastore] 9f197b69-e6dc-a1c1-70b1-4c52624db805/ssk-vc_6.vmdk"
+"ssk-vc","Hard disk 8",,"10","[vsanDatastore] 9f197b69-e6dc-a1c1-70b1-4c52624db805/ssk-vc_7.vmdk"
+"ssk-vc","Hard disk 9",,"1","[vsanDatastore] 9f197b69-e6dc-a1c1-70b1-4c52624db805/ssk-vc_8.vmdk"
+"ssk-vc","Hard disk 10",,"10","[vsanDatastore] 9f197b69-e6dc-a1c1-70b1-4c52624db805/ssk-vc_9.vmdk"
+"ssk-vc","Hard disk 11",,"10","[vsanDatastore] 9f197b69-e6dc-a1c1-70b1-4c52624db805/ssk-vc_10.vmdk"
+"ssk-vc","Hard disk 12",,"100","[vsanDatastore] 9f197b69-e6dc-a1c1-70b1-4c52624db805/ssk-vc_11.vmdk"
+"ssk-vc","Hard disk 13",,"50","[vsanDatastore] 9f197b69-e6dc-a1c1-70b1-4c52624db805/ssk-vc_12.vmdk"
+"ssk-vc","Hard disk 14",,"10","[vsanDatastore] 9f197b69-e6dc-a1c1-70b1-4c52624db805/ssk-vc_13.vmdk"
+"ssk-vc","Hard disk 15",,"5","[vsanDatastore] 9f197b69-e6dc-a1c1-70b1-4c52624db805/ssk-vc_14.vmdk"
+"ssk-vc","Hard disk 16",,"100","[vsanDatastore] 9f197b69-e6dc-a1c1-70b1-4c52624db805/ssk-vc_15.vmdk"
+"ssk-vc","Hard disk 17",,"150","[vsanDatastore] 9f197b69-e6dc-a1c1-70b1-4c52624db805/ssk-vc_16.vmdk"
+
+[ SECTION : 15_Guest_OS_Configuation_status ]
+-----------------------------------------------------
+"VMName","ConfiguredOS","RunningOS","Status","MatchCheck"
+"kdw-jumpbox","Microsoft Windows Server 2019 (64-bit)","Ubuntu Linux (64-bit)","WARN: OS Mismatch","False"
+"vc","Other 3.x or later Linux (64-bit)","VMware Photon OS (64-bit)","WARN: OS Mismatch","False"
+"kdw-iperf3","Microsoft Windows Server 2019 (64-bit)","Ubuntu Linux (64-bit)","WARN: OS Mismatch","False"
+"ynh-vc","Other 3.x or later Linux (64-bit)","VMware Photon OS (64-bit)","WARN: OS Mismatch","False"
+"ynh-rhel01","Ubuntu Linux (64-bit)","Red Hat Enterprise Linux 9 (64-bit)","WARN: OS Mismatch","False"
+"SupervisorControlPlaneVM (2)","Other 3.x Linux (64-bit)","VMware Photon OS (64-bit)","WARN: OS Mismatch","False"
+"SupervisorControlPlaneVM (3)","Other 3.x Linux (64-bit)","VMware Photon OS (64-bit)","WARN: OS Mismatch","False"
+"SupervisorControlPlaneVM (1)","Other 3.x Linux (64-bit)","VMware Photon OS (64-bit)","WARN: OS Mismatch","False"
+"yun-vc","Other 3.x or later Linux (64-bit)","VMware Photon OS (64-bit)","WARN: OS Mismatch","False"
+"ssk-vc","Other 3.x or later Linux (64-bit)","VMware Photon OS (64-bit)","WARN: OS Mismatch","False"
+
+[ SECTION : 16_vCenter_Storage_Health ]
+-----------------------------------------------------
+"Appliance Storage","DB Storage","Storage Messages","DB Messages","Last Checked"
+"OK (Green)","OK (Green)","None","None","2026-01-29 22:31:39"
+
+[ SECTION : 17_vCenter_Certificate ]
+-----------------------------------------------------
+"CertName","ExpirationDate","DaysRemaining","Status"
+"Machine SSL (TLS) Certificate","2028-01-16","717","ok"
+
+[ SECTION : 18_vCenter_Backup_History ]
+-----------------------------------------------------
+"JobID","StartTime","EndTime","Status","Duration","Location"
+"N/A","No History","N/A","NONE","0 min","No backup configured or performed"
+
+[ SECTION : 19_vSphere_Alarms ]
+-----------------------------------------------------
+"Entity","AlarmName","Status","Time","Acknowledged"
+"fu-01.vks.lab","Host hardware fan status","CRITICAL","2026-01-29 08:25","No"
+"fu-02.vks.lab","Host hardware fan status","CRITICAL","2026-01-29 08:11","No"
+"fu-03.vks.lab","Host hardware fan status","CRITICAL","2026-01-29 08:33","No"
+
+[ SECTION : 21_supervisor_health ]
+-----------------------------------------------------
+"ClusterName","API_Server","ClusterID","ConfigStatus","K8sStatus","Status"
+"Cluster","Not Assigned","domain-c9","RUNNING","READY","ok"
+
+[ SECTION : 22_vSphere_Namespace ]
+-----------------------------------------------------
+"Namespace","Supervisor","ConfigStatus","CPU(MHz)","Mem(GB)","Storage(GB)","Networks","Message"
+"svc-tkg-domain-c9","23ffd53f-80ca-4514-b130-51a86c945aaa","RUNNING","0","0","0","vds-kdw-fu-10-200-29","Normal"
+"svc-velero-domain-c9","23ffd53f-80ca-4514-b130-51a86c945aaa","RUNNING","0","0","0","vds-kdw-fu-10-200-29","Normal"
+"nc-ids-ns","23ffd53f-80ca-4514-b130-51a86c945aaa","RUNNING","0","0","0","vds-kdw-fu-10-200-29","Normal"
