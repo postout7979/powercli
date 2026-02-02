@@ -1,0 +1,54 @@
+param(
+    [string]$Server,
+    $SessionId, 
+    [string]$XsrfToken
+)
+
+# SSL 및 TLS 보안 설정
+[System.Net.ServicePointManager]::ServerCertificateValidationCallback = {$true}
+$null = [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+$Headers = @{ 
+    "X-XSRF-TOKEN" = $XsrfToken
+    "Accept"       = "application/json"
+}
+
+try {
+    # 2. SHA(System Health Agent) Appliance Process API 호출
+    $Uri = "https://$Server/policy/api/v1/infra/sha/appliances/process/status"
+    $Response = Invoke-RestMethod -Method Get -Uri $Uri -Headers $Headers -WebSession $SessionId
+
+    # 3. 결과 저장용 리스트 (다른 플러그인과 일관성 유지)
+    $ReportEntries = New-Object System.Collections.Generic.List[PSCustomObject]
+
+    if ($null -ne $Response -and $null -ne $Response.results) {
+        foreach ($appliance in $Response.results) {
+            $NodeName = $appliance.name  # 예: manager-1
+
+            # 메모리 기준 상위 프로세스 리스트 추출
+            if ($null -ne $appliance.top_process_by_mem_list) {
+                foreach ($proc in $appliance.top_process_by_mem_list) {
+                    
+                    # 4. 표준화된 PSCustomObject 생성
+                    $obj = [PSCustomObject]@{
+                        NodeName   = $NodeName
+                        PID        = $proc.process_id
+                        Command    = $proc.command
+                        CPU_Usage  = $proc.cpu_usage      # "71.5%" (문자열 포함)
+                        Mem_Usage  = $proc.memory_usage   # "3.7%"
+                        User       = $proc.user
+                        Health     = if ([double]($proc.cpu_usage -replace '%','') -gt 80) { "WARNING" } else { "OK" }
+                    }
+                    $ReportEntries.Add($obj)
+                }
+            }
+        }
+    }
+
+    # 5. CPU 사용률이 높은 순서대로 정렬하여 반환
+    return $ReportEntries | Sort-Object { [double]($_.CPU_Usage -replace '%','') } -Descending
+
+} catch {
+    Write-Warning "[$Server] Process Status 조회 중 오류: $($_.Exception.Message)"
+    return $null
+}
