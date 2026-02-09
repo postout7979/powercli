@@ -1,13 +1,18 @@
 # =============================================================================
-# [Script 2] VMSA Auditor for Air-Gapped Environment (Major Version Match)
+# [Script 2] VMSA Auditor for Air-Gapped Environment (Strict Matrix Match)
 # -----------------------------------------------------------------------------
 # Environment: Internal Network (vCenter access required, No Internet)
 # Function:
 # 1. Loads 'VMSA_Offline_Data.json'.
 # 2. Connects to vCenter.
-# 3. Matches VMSAs based on Title & Response Matrix Version (1st digit).
+# 3. Strict Matching:
+#    - Checks 'FixedInfo' (Response Matrix) columns.
+#    - Col 1 MUST match Product (vCenter/ESXi).
+#    - Col 2 MUST match Local Major Version (1st digit).
 # 4. Generates CSV and HTML Reports (English).
-#    - "Matched Assets" column moved to Details section in HTML.
+#    - CVSS Column Removed.
+#    - ID Column: Simple Link.
+#    - Details Section: Shows URL, Matched Assets, and Fixed Info.
 # =============================================================================
 
 # --- Configuration ---
@@ -69,8 +74,8 @@ try {
     exit
 }
 
-# --- 3. Scan & Match Assets (Response Matrix Check) ---
-Write-Host "[3] Analyzing environment (Matrix 1st Digit Matching)..." -ForegroundColor Cyan
+# --- 3. Scan & Match Assets (Strict Matrix Check) ---
+Write-Host "[3] Analyzing environment (Strict Matrix Matching)..." -ForegroundColor Cyan
 
 $Report = @()
 
@@ -100,93 +105,63 @@ $RowIdCounter = 0
 
 foreach ($vmsa in $VmsaList) {
     
-    # Store relevant assets for this VMSA
-    $RelevantAssets = @() 
+    # Flags to determine if this VMSA should be reported
+    $ShouldReport = $false
     $MatchedProductTypes = @()
+    $RelevantAssets = @()
 
     # Split FixedInfo (Response Matrix) into rows
-    # Format from Downloader: "Product Name | Version <br> Product Name | Version"
     $MatrixRows = $vmsa.FixedInfo -split "<br>"
 
-    # --- A. Check vCenter ---
-    if ($vmsa.Title -match "vCenter") {
-        $VcMatched = $false
+    # --- Matrix Analysis ---
+    foreach ($row in $MatrixRows) {
+        $parts = $row -split "\|"
         
-        # 1. Check Response Matrix Columns
-        foreach ($row in $MatrixRows) {
-            $parts = $row -split "\|"
-            if ($parts.Count -ge 2) {
-                $prodName = $parts[0].Trim()
-                $verStr   = $parts[1].Trim() # e.g. "8.0 U2", "7.0.3"
+        if ($parts.Count -ge 2) {
+            $prodName = $parts[0].Trim()
+            $verStr   = $parts[1].Trim() # e.g. "8.0 U2", "7.0.3"
+            
+            # Extract Major Digit from Matrix Version
+            $MatrixMajor = if ($verStr -match "^(\d+)") { $matches[1] } else { $null }
 
+            if ($MatrixMajor) {
+                # Check vCenter Match
                 if ($prodName -match "vCenter") {
-                    # Extract 1st digit from matrix version string
-                    if ($verStr -match "^(\d+)") {
-                        $MatrixMajor = $matches[1]
-                        # Compare with Local Major Digit
-                        if ($MatrixMajor -eq $VcMajorDigit) {
-                            $VcMatched = $true
+                    if ($MatrixMajor -eq $VcMajorDigit) {
+                        $ShouldReport = $true
+                        if ($MatchedProductTypes -notcontains "vCenter") {
+                            $MatchedProductTypes += "vCenter"
+                            $RelevantAssets += "vCenter ($VcVerFull)"
                         }
                     }
                 }
-            }
-        }
 
-        # 2. Fallback: If Matrix didn't match specific rows, check general AffectedMajors tag
-        if (-not $VcMatched -and $vmsa.AffectedMajors -match "$VcMajorDigit\.") {
-            $VcMatched = $true
-        }
-
-        if ($VcMatched) {
-            $RelevantAssets += "vCenter ($VcVerFull)"
-            $MatchedProductTypes += "vCenter"
-        }
-    }
-
-    # --- B. Check ALL ESXi Hosts ---
-    if ($vmsa.Title -match "ESXi") {
-        foreach ($hostItem in $HostList) {
-            $HostMatched = $false
-            
-            # 1. Check Response Matrix Columns
-            foreach ($row in $MatrixRows) {
-                $parts = $row -split "\|"
-                if ($parts.Count -ge 2) {
-                    $prodName = $parts[0].Trim()
-                    $verStr   = $parts[1].Trim()
-
-                    if ($prodName -match "ESXi") {
-                        if ($verStr -match "^(\d+)") {
-                            $MatrixMajor = $matches[1]
-                            # Compare with Host Major Digit
-                            if ($MatrixMajor -eq $hostItem.MajorDigit) {
-                                $HostMatched = $true
+                # Check ESXi Match
+                if ($prodName -match "ESXi") {
+                    foreach ($hostItem in $HostList) {
+                        if ($MatrixMajor -eq $hostItem.MajorDigit) {
+                            $ShouldReport = $true
+                            if ($MatchedProductTypes -notcontains "ESXi") {
+                                $MatchedProductTypes += "ESXi"
+                            }
+                            $assetEntry = "$($hostItem.Name) ($($hostItem.FullVer))"
+                            if ($RelevantAssets -notcontains $assetEntry) {
+                                $RelevantAssets += $assetEntry
                             }
                         }
                     }
                 }
             }
-
-            # 2. Fallback
-            if (-not $HostMatched -and $vmsa.AffectedMajors -match "$($hostItem.MajorDigit)\.") {
-                $HostMatched = $true
-            }
-
-            if ($HostMatched) {
-                $RelevantAssets += "$($hostItem.Name) ($($hostItem.FullVer))"
-                $MatchedProductTypes += "ESXi"
-            }
         }
     }
 
-    # --- Add to Report if ANY asset matches ---
-    if ($RelevantAssets.Count -gt 0) {
+    # --- Add to Report if Match Found ---
+    if ($ShouldReport) {
         $RowIdCounter++
         
         # Format the "My Version" info (unique assets)
         $AssetStr = ($RelevantAssets | Select-Object -Unique) -join ", "
         
-        # Determine Severity Class for HTML
         $Report += [PSCustomObject]@{
             RowID           = "row_$RowIdCounter"
             Type            = ($MatchedProductTypes | Select-Object -Unique) -join ", "
@@ -194,7 +169,6 @@ foreach ($vmsa in $VmsaList) {
             AdvisoryID      = $vmsa.AdvisoryID
             Title           = $vmsa.Title
             Severity        = $vmsa.Severity
-            CVSS            = $vmsa.CVSS
             FixedIn         = $vmsa.FixedInfo
             Link            = $vmsa.Link
         }
@@ -203,31 +177,32 @@ foreach ($vmsa in $VmsaList) {
 
 # --- 4. Output Results ---
 if ($Report.Count -gt 0) {
-    # CSV (Keep MatchedAssets for CSV)
+    # CSV
     $Report | Export-Csv -Path $CsvPath -NoTypeInformation -Encoding UTF8
     
-    # HTML (Remove MatchedAssets column, move to Details)
+    # HTML (CVSS Removed, URL moved to Details)
     $HtmlRows = ""
     foreach ($row in $Report) {
         $sevClass = if ($row.Severity -match "Critical") { "crit" } elseif ($row.Severity -match "Important") { "warn" } else { "ok" }
         
         $HtmlRows += "<tr>"
         $HtmlRows += "<td><b>$($row.Type)</b></td>"
-        # MatchedAssets column removed from here
+        
+        # ID Column: Simple Link
         $HtmlRows += "<td><a href='$($row.Link)' target='_blank'>$($row.AdvisoryID)</a></td>"
+        
         $HtmlRows += "<td>$($row.Title)</td>"
         $HtmlRows += "<td><span class='badge $sevClass'>$($row.Severity)</span></td>"
-        $HtmlRows += "<td>$($row.CVSS)</td>"
         $HtmlRows += "<td><button class='btn-toggle' onclick=`"toggleDetails('$($row.RowID)')`">Details</button></td>"
         $HtmlRows += "</tr>"
         
         $HtmlRows += "<tr id='$($row.RowID)' class='details-row'>"
-        $HtmlRows += "<td colspan='6'>" # Adjusted colspan
+        $HtmlRows += "<td colspan='5'>"
         $HtmlRows += "<div class='details-box'>"
         
-        # Add Matched Assets info here
+        # Details Content: URL added here
+        $HtmlRows += "<strong>Advisory URL:</strong><br><a href='$($row.Link)' target='_blank' class='link-text'>$($row.Link)</a><br><br>"
         $HtmlRows += "<strong>Matched Local Assets:</strong><br><span class='asset-text'>$($row.MatchedAssets)</span><br><br>"
-        
         $HtmlRows += "<strong>Response Matrix (Fixed Versions):</strong><br><span class='info-text'>$($row.FixedIn)</span>"
         $HtmlRows += "</div></td></tr>"
     }
@@ -255,6 +230,7 @@ $HtmlContent = @"
     .details-box { padding: 15px; border-left: 4px solid #3b82f6; margin: 5px; background: white; border-radius: 4px; }
     .info-text { font-family: Consolas, monospace; color: #334155; font-size: 0.9em; white-space: pre-wrap; }
     .asset-text { font-family: 'Segoe UI', sans-serif; color: #b91c1c; font-weight: bold; font-size: 0.95em; }
+    .link-text { color: #2563eb; font-size: 0.9em; }
     
     a { color: #2563eb; text-decoration: none; font-weight: bold; } a:hover { text-decoration: underline; }
 </style>
@@ -266,11 +242,11 @@ $HtmlContent = @"
 </script>
 </head>
 <body>
-    <h2>vSphere Security Audit Report (Air-Gapped / Major Ver Check)</h2>
+    <h2>vSphere Security Audit Report (Strict Matrix Match)</h2>
     <div class="meta">Target: $vcServer | Data Source Date: $($JsonData.Metadata.GeneratedAt)</div>
     <table>
         <thead><tr>
-            <th>Product</th><th>ID</th><th>Title</th><th>Severity</th><th>CVSS</th><th>Action</th>
+            <th>Product</th><th>ID</th><th>Title</th><th>Severity</th><th>Action</th>
         </tr></thead>
         <tbody>
             $HtmlRows
@@ -286,7 +262,7 @@ $HtmlContent = @"
     Write-Host " - HTML: $HtmlPath"
     Invoke-Item $HtmlPath
 } else {
-    Write-Host "`n[DONE] No relevant advisories found for your Major Versions." -ForegroundColor Green
+    Write-Host "`n[DONE] No advisories matched your specific versions based on the Response Matrix." -ForegroundColor Green
 }
 
 Disconnect-VIServer -Confirm:$false
