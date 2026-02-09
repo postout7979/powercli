@@ -1,7 +1,10 @@
-# 이 스크립트는 에어갭 환경에서 사전에 다운로드한 vCenter, ESXi에 대한 security patch를 위한 VMSA 항목 리스트를 보유한 JSON 파일을 가지고서, VMware PowerCLI 모듈을 사용한 Security Advisories의 버전에 해당 여부를 체크하는 스크립트입니다.
-# 이 스크립트의 완전한 신뢰성을 제공하지는 않으며, Broadcom Security Advisory 사이트의 API 호출 방식 혹은 구문 배치 변경에 따라, downloader 스크립트에서 웹페이지 크롤링이 정상적으로 이뤄지지 않는 경우에는 더 이상 이 스크립트를 사용한 체크는 제한됩니다.
-
-## 파일 순서
+## vCenter, ESXi의 Security Advisory의 VMSA(CVE 취약점 해당 항목) 리스트 검사 스크립트
+<br><br><br>
+### 이 스크립트는 에어갭 환경에서 사전에 다운로드한 vCenter, ESXi에 대한 security patch를 위한 VMSA 항목 리스트를 보유한 JSON 파일을 가지고서, VMware PowerCLI 모듈을 사용한 Security Advisories의 버전에 해당 여부를 체크하는 스크립트입니다.
+<br><br><br>
+이 스크립트의 완전한 신뢰성을 제공하지는 않으며, Broadcom Security Advisory 사이트의 API 호출 방식 혹은 구문 배치 변경에 따라, downloader 스크립트에서 웹페이지 크롤링이 정상적으로 이뤄지지 않는 경우에는 더 이상 이 스크립트를 사용한 체크는 제한됩니다.
+<br><br><br>
+### 파일 순서
 1. Readme.md: 설명서
 2. downloader script: JSON 파일을 생성하기 위한 스크립트 -> 인터넷 연결 윈도우에서 사전에 JSON 파일을 생성 요구됨.
 3. auditoer script: 에어갭 환경에서 JSON 파일을 동일 폴더에 위치하고서, 스크립트를 실행하여 vCenter에 접속합니다.(Read only 계정 강력 권장)
