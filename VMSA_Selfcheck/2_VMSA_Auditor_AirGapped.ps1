@@ -1,18 +1,15 @@
 # =============================================================================
-# [Script 2] VMSA Auditor for Air-Gapped Environment (Strict Matrix Match)
+# [Script 2] VMSA Auditor for Air-Gapped Environment (Strict Matrix + N/A Fix)
 # -----------------------------------------------------------------------------
 # Environment: Internal Network (vCenter access required, No Internet)
 # Function:
 # 1. Loads 'VMSA_Offline_Data.json'.
 # 2. Connects to vCenter.
-# 3. Strict Matching:
-#    - Checks 'FixedInfo' (Response Matrix) columns.
-#    - Col 1 MUST match Product (vCenter/ESXi).
-#    - Col 2 MUST match Local Major Version (1st digit).
+# 3. Strict Matching Logic:
+#    - Standard: Col 1 (Product) -> Col 2 (Version).
+#      [New] If Col 2 is "N/A", check Col 3 for Version.
+#    - VCF Case: Col 1 (VCF) -> Col 2 (Component) -> Col 3 (Version).
 # 4. Generates CSV and HTML Reports (English).
-#    - CVSS Column Removed.
-#    - ID Column: Simple Link.
-#    - Details Section: Shows URL, Matched Assets, and Fixed Info.
 # =============================================================================
 
 # --- Configuration ---
@@ -75,7 +72,7 @@ try {
 }
 
 # --- 3. Scan & Match Assets (Strict Matrix Check) ---
-Write-Host "[3] Analyzing environment (Strict Matrix Matching)..." -ForegroundColor Cyan
+Write-Host "[3] Analyzing environment (Strict Matrix Matching with N/A Handling)..." -ForegroundColor Cyan
 
 $Report = @()
 
@@ -117,16 +114,42 @@ foreach ($vmsa in $VmsaList) {
     foreach ($row in $MatrixRows) {
         $parts = $row -split "\|"
         
+        # Variables to hold the target component and version for this row
+        $targetComponent = $null
+        $targetVersionStr = $null
+
+        # Logic: Distinguish between Standard vs VCF vs Standard with N/A
         if ($parts.Count -ge 2) {
-            $prodName = $parts[0].Trim()
-            $verStr   = $parts[1].Trim() # e.g. "8.0 U2", "7.0.3"
+            $col1 = $parts[0].Trim() # Product (e.g., vCenter Server, VMware Cloud Foundation)
             
-            # Extract Major Digit from Matrix Version
-            $MatrixMajor = if ($verStr -match "^(\d+)") { $matches[1] } else { $null }
+            # Case A: VCF (Needs 3 columns: Product | Component | Version)
+            if ($col1 -match "Cloud\s*Foundation" -and $parts.Count -ge 3) {
+                $targetComponent = $parts[1].Trim() # Col 2 is the actual component
+                $targetVersionStr = $parts[2].Trim() # Col 3 is the version
+            }
+            # Case B: Standard (vCenter/ESX)
+            elseif ($col1 -match "vCenter|ESX") {
+                $targetComponent = $col1
+                $col2 = $parts[1].Trim()
+                
+                # [New Logic] Check if Col2 is N/A. If so, check Col3.
+                if ($col2 -match "^N\/A" -and $parts.Count -ge 3) {
+                     $targetVersionStr = $parts[2].Trim() # Fallback to Col 3
+                } else {
+                     $targetVersionStr = $col2 # Default to Col 2
+                }
+            }
+        }
+
+        # If valid component and version found, proceed with matching
+        if ($targetComponent -and $targetVersionStr) {
+            
+            # Extract Major Digit from the Target Version String
+            $MatrixMajor = if ($targetVersionStr -match "^(\d+)") { $matches[1] } else { $null }
 
             if ($MatrixMajor) {
                 # Check vCenter Match
-                if ($prodName -match "vCenter") {
+                if ($targetComponent -match "vCenter") {
                     if ($MatrixMajor -eq $VcMajorDigit) {
                         $ShouldReport = $true
                         if ($MatchedProductTypes -notcontains "vCenter") {
@@ -136,13 +159,13 @@ foreach ($vmsa in $VmsaList) {
                     }
                 }
 
-                # Check ESXi Match
-                if ($prodName -match "ESXi") {
+                # Check ESX or ESXi Match
+                if ($targetComponent -match "ESX") {
                     foreach ($hostItem in $HostList) {
                         if ($MatrixMajor -eq $hostItem.MajorDigit) {
                             $ShouldReport = $true
-                            if ($MatchedProductTypes -notcontains "ESXi") {
-                                $MatchedProductTypes += "ESXi"
+                            if ($MatchedProductTypes -notcontains "ESX") {
+                                $MatchedProductTypes += "ESX"
                             }
                             $assetEntry = "$($hostItem.Name) ($($hostItem.FullVer))"
                             if ($RelevantAssets -notcontains $assetEntry) {
@@ -180,7 +203,7 @@ if ($Report.Count -gt 0) {
     # CSV
     $Report | Export-Csv -Path $CsvPath -NoTypeInformation -Encoding UTF8
     
-    # HTML (CVSS Removed, URL moved to Details)
+    # HTML
     $HtmlRows = ""
     foreach ($row in $Report) {
         $sevClass = if ($row.Severity -match "Critical") { "crit" } elseif ($row.Severity -match "Important") { "warn" } else { "ok" }
@@ -200,7 +223,7 @@ if ($Report.Count -gt 0) {
         $HtmlRows += "<td colspan='5'>"
         $HtmlRows += "<div class='details-box'>"
         
-        # Details Content: URL added here
+        # Details Content
         $HtmlRows += "<strong>Advisory URL:</strong><br><a href='$($row.Link)' target='_blank' class='link-text'>$($row.Link)</a><br><br>"
         $HtmlRows += "<strong>Matched Local Assets:</strong><br><span class='asset-text'>$($row.MatchedAssets)</span><br><br>"
         $HtmlRows += "<strong>Response Matrix (Fixed Versions):</strong><br><span class='info-text'>$($row.FixedIn)</span>"
@@ -242,7 +265,7 @@ $HtmlContent = @"
 </script>
 </head>
 <body>
-    <h2>vSphere Security Audit Report (Strict Matrix Match)</h2>
+    <h2>vSphere Security Audit Report (Strict Matrix Match with N/A Fix)</h2>
     <div class="meta">Target: $vcServer | Data Source Date: $($JsonData.Metadata.GeneratedAt)</div>
     <table>
         <thead><tr>
