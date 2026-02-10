@@ -230,7 +230,7 @@ foreach ($Key in $GlobalResults.Keys) {
             $HtmlBody += "<tr>"
             foreach ($p in $Props) {
                 $v = [string]$i.$p
-                $c = if($v -match "UP|RUNNING|OK|ACTIVE") { "status-ok" } elseif($v -match "DOWN|CRITICAL|ERROR|FAILED") { "status-crit" } elseif($v -match "WARN|PROGRESS") { "status-warn" } else { "" }
+                $c = if($v -match "RUNNING|ACTIVE") { "status-ok" } elseif($v -match "DOWN|CRITICAL|ERROR|FAILED") { "status-crit" } elseif($v -match "WARN|PROGRESS") { "status-warn" } else { "" }
                 $tdValue = if($c) { "<span class='badge $c'>$v</span>" } else { $v }
                 $HtmlBody += "<td>$tdValue</td>"
             }
@@ -273,5 +273,6 @@ if ($Session -and $XsrfToken) {
 }
 
 exit
+
 
 exit
