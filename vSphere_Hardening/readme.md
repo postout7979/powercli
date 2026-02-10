@@ -1,3 +1,14 @@
+
+audit_runner.ps1
+- 메인 실행 파일
+audit-reporter.ps1
+- 폴더와 텍스트 파일 생성된 이후, 해당 텍스트 불러오기로 해서, html파일 생성
+json_to_aop.ps1
+- parameter로 서버, 계정 정보 입력해서 VCF Operations에 메트릭 주입
+aop_cleanup.ps1
+- VCF Operations에서 해당 리소스 제거
+
+
 report 텍스트 파일
 <br><br>
 <img width="829" height="505" alt="image" src="https://github.com/user-attachments/assets/9f174e5c-ce36-41c2-bfef-6520004b2567" />
