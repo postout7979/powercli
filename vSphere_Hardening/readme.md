@@ -3,7 +3,7 @@
 report 텍스트 파일
 <img width="829" height="505" alt="image" src="https://github.com/user-attachments/assets/9f174e5c-ce36-41c2-bfef-6520004b2567" />
 
-`[2026-02-10 17:58:27] [INFO] VMware ESX Host Security Settings Audit Utility 8.0.3
+```[2026-02-10 17:58:27] [INFO] VMware ESX Host Security Settings Audit Utility 8.0.3
 [2026-02-10 17:58:27] [INFO] Audit of fu-01.vks.lab started at 2026-02-10 17:58:27 from HCSVDI-28 by broadcom
 [2026-02-10 17:58:27] [INFO] EULA accepted.
 [2026-02-10 17:58:27] [INFO] Safety checks skipped.
@@ -14,7 +14,7 @@ report 텍스트 파일
 [2026-02-10 17:58:31] [PASS] fu-01.vks.lab: UserVars.DcuiTimeOut configured correctly (600)
 [2026-02-10 17:58:31] [PASS] fu-01.vks.lab: Security.AccountUnlockTime configured correctly (900)
 [2026-02-10 17:58:31] [PASS] fu-01.vks.lab: Config.HostAgent.plugins.solo.enableMob configured correctly (False)
-[2026-02-10 17:58:31] [PASS] fu-01.vks.lab: Net.DVFilterBindIpAddress configured correctly ()`
+[2026-02-10 17:58:31] [PASS] fu-01.vks.lab: Net.DVFilterBindIpAddress configured correctly ()```
 
 report html 파일
 <img width="1262" height="1156" alt="image" src="https://github.com/user-attachments/assets/8d7925bb-11ca-4e8f-a2db-e67ca7e6eece" />
