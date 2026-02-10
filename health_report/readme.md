@@ -36,10 +36,7 @@ Get-VM-Report.ps1 스크립트를 실행
 ## HTML output
 <img width="1398" height="1182" alt="image" src="https://github.com/user-attachments/assets/2c86d5c2-4eb6-459d-8239-3aa5d9795855" />
 <img width="1395" height="1105" alt="image" src="https://github.com/user-attachments/assets/3bd45d7d-1dcd-4d33-88a3-d5933ad88361" />
-<img width="1390" height="1179" alt="image" src="https://github.com/user-attachments/assets/1418125c-50fc-4463-b56a-69cf8564bf25" />
-<img width="1388" height="1181" alt="image" src="https://github.com/user-attachments/assets/c402c9bb-6fda-4617-b39d-c4a665152ae7" />
-<img width="1392" height="1182" alt="image" src="https://github.com/user-attachments/assets/ed22771d-bdbd-494e-96e5-02c9856471b1" />
-<img width="1400" height="1176" alt="image" src="https://github.com/user-attachments/assets/b5668f23-d7cc-4bd8-b56d-d251fb47cfae" />
+
 
 ## CSV output
 <img width="548" height="1073" alt="image" src="https://github.com/user-attachments/assets/ee77c81c-75f6-45bc-bd17-83a742f0e7f3" />
