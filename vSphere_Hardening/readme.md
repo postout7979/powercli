@@ -27,7 +27,7 @@ scg-common.psm1: SCG에 필요한 공통 기능 추가
 - 하위 폴더로 출력 결과가 텍스트 파일로 생성됩니다.
 2. audit-reporter.ps1 파일을 실행하고서, 폴더를 선택
 - HTML 파일과 JSON 파일을 생성합니다.
-3. json_to_aop.ps1 파일을 실행
+3. json_to_aop.ps1 파일을 실행<br>
 ```json_to_aop.ps1 --AopServer="VCF operations fqdn" --AopUser="user name" --AopPassword="user password"```
 <br>
 - 파일을 실행하고서 -> 폴더 선택 -> JSON 파일 선택을 하면, VCF Operations에 메트릭 값을 전송합니다. VCF Operation에서는 최대 5분(VCF Ops의 메트릭 수집 주기) 이후에 반영될 수 있습니다.
