@@ -2,23 +2,23 @@
 
 ### 주요 파일 리스트
 audit_runner.ps1: 메인 실행 파일
-<br>
+<br><br>
 audit-reporter.ps1: 폴더와 텍스트 파일 생성된 이후, 해당 텍스트 불러오기로 해서, html파일 생성
-<br>
+<br><br>
 json_to_aop.ps1: parameter로 서버, 계정 정보 입력해서 VCF Operations에 메트릭 주입
-<br>
+<br><br>
 aop_cleanup.ps1: VCF Operations에서 해당 리소스 제거
-<br>
+<br><br>
 audit-all.ps1: vCenter, ESXi, VM 스크립트를 모두 수행
-<br>
+<br><br>
 audit-esxi-8.ps1: esxi에 확인이 필요한 명령어 수행
-<br>
+<br><br>
 audit-vcenter-8.ps1: vCenter에 확인이 필요한 명령어 수행
-<br>
+<br><br>
 audit-vm-8.ps1: VM에 확인이 필요한 명령어 수행
-<br>
+<br><br>
 connect.ps1: vCenter 연결
-<br>
+<br><br>
 scg-common.psm1: SCG에 필요한 공통 기능 추가
 <br><br>
 
