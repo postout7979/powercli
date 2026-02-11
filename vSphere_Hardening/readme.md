@@ -37,6 +37,7 @@ report 텍스트 파일
 <br><br>
 <img width="829" height="505" alt="image" src="https://github.com/user-attachments/assets/9f174e5c-ce36-41c2-bfef-6520004b2567" />
 <br><br>
+
 ```
 [2026-02-10 17:58:27] [INFO] VMware ESX Host Security Settings Audit Utility 8.0.3
 [2026-02-10 17:58:27] [INFO] Audit of fu-01.vks.lab started at 2026-02-10 17:58:27 from HCSVDI-28 by broadcom
