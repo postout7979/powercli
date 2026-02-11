@@ -53,6 +53,18 @@ report 텍스트 파일
 [2026-02-10 17:58:31] [PASS] fu-01.vks.lab: Net.DVFilterBindIpAddress configured correctly ()
 ```
 <br><br>
+Security Hardening에 대한 소스 github: https://github.com/vmware/vcf-security-and-compliance-guidelines/tree/main/security-configuration-hardening-guide/vsphere
+* 해당 github는 브로드컴에서 제공하는 Repository이며, vSphere를 포함한 다른 제품에 대한 SCG 가이드를 제공하고 있습니다.
+* 각 버전별 스크립트에 따라 일부 차이가 발생할 수 있으며, 해당 버전의 powerCLI script tool을 사용을 권장하나, 기본적으로 version check 없이 진행하도록 명령어 수행 시, 옵션이 기재되어 있습니다.
+* 다른 vSphere 버전을 사용중인 경우에는 현재 제공되는 vSphere 8 버전으로 우선 수행을 해보고, 해당 버전의 스크립트 파일을 다운로드한 후, 아래 4개의 파일만을 가져와 동일 위치에 복사한 후 실행을 권장합니다.
+audit_runner.ps1
+<br>
+audit-reporter.ps1
+<br>
+json_to_aop.ps1
+<br>
+aop_cleanup.ps1
+<br><br>
 report html 파일
 <br><br>
 <img width="1262" height="1156" alt="image" src="https://github.com/user-attachments/assets/8d7925bb-11ca-4e8f-a2db-e67ca7e6eece" />
