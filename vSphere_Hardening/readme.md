@@ -76,3 +76,6 @@ VCF Operations view
 VCF Operations Inventory
 <br><br>
 <img width="2013" height="1080" alt="image" src="https://github.com/user-attachments/assets/21407a8a-5d96-4039-b59a-27470a3d1e1d" />
+<br><br>
+<img width="1892" height="795" alt="image" src="https://github.com/user-attachments/assets/947e550e-e668-45eb-ac9a-334eb20d697d" />
+
