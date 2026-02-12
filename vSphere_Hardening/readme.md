@@ -4,8 +4,6 @@
 ### 주요 파일 리스트
 audit_runner.ps1: 메인 실행 파일
 <br>
-aop_cleanup.ps1: VCF Operations에서 해당 리소스 제거
-<br>
 audit-all.ps1: vCenter, ESXi, VM 스크립트를 모두 수행
 <br>
 audit-esxi-8.ps1: esxi에 확인이 필요한 명령어 수행
