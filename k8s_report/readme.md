@@ -14,13 +14,12 @@ k8s_health_summary<br>
 - ips.txt에 호출 대상 cluster API 주소를 기재합니다.(line by line으로 다수 기입)
 - main.ps1을 실행합니다.<br>
 <br>
-<img width="982" height="1035" alt="image" src="https://github.com/user-attachments/assets/49bad43e-ca2e-4638-9a49-abfd97daeee0" />
-
-<br>
 k8s_resource<br>
 - clusters.txt: cluster api IP 주소와 token을 기재합니다. "," 콤마로 구분(line by line으로 다수 기입)<br>
 - create_k8s_user.sh: supervisor & vks cluster 접속 linux OS에서 login 상태에서 스크립트 실행 시, 사용자 계정과 토큰을 생성합니다.<br>
 - make_clusters.sh: supervisor & vks cluster 접속 linux OS에서 현재 접속 상태의 config 정보를 조회해서 cluster API IP주소와 현재 토큰을 수집합니다.(vSphere SSO로 로그인한 토큰은 제한 시간이 존재합니다.)<br>
 - k8s_runner.ps1: 스크립트를 실행하면, 정보를 수집하고 html 및 csv 파일을 생성합니다.<br>
-  
+<br>
+<img width="982" height="1035" alt="image" src="https://github.com/user-attachments/assets/49bad43e-ca2e-4638-9a49-abfd97daeee0" />
+<br><br>
 <img width="1591" height="871" alt="image" src="https://github.com/user-attachments/assets/1040ea51-e42a-4136-82c9-bda66a197d08" />
