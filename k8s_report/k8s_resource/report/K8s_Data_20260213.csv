@@ -1,0 +1,7 @@
+﻿"Cluster","Category","Namespace","Name","Status","Details"
+"https://10.200.31.34:6443","Node","-","kdw-lb-hjvg9-g6c7b","True","Role:Control-Plane, ESXi:fu-02.vks.lab, CPU:1.93/0.149, Mem:6045.01/1611.04"
+"https://10.200.31.34:6443","Node","-","kdw-lb-md-tlkvs-9mbgj-c6jqg","True","Role:Worker, ESXi:fu-02.vks.lab, CPU:1.93/0.0594, Mem:6045.02/658.8"
+"https://10.200.31.34:6443","PodIssue","nginx","nginx-b84fb8d-fwpsb","Pending","Restarts:0"
+"https://10.200.31.34:6443","PodIssue","nginx","nginx-b84fb8d-jqbv9","Pending","Restarts:0"
+"https://10.200.31.34:6443","Service","nginx","nginx","LoadBalancer","Endpoint:10.200.31.1"
+"https://10.200.31.34:6443","Ingress","nginx","nginx","Active","Hosts:*, Address:Pending"

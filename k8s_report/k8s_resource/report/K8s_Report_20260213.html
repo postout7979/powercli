@@ -1,0 +1,54 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>K8s Health Report</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 40px; color: #333; }
+        .card { background: white; border-radius: 12px; padding: 30px; margin-bottom: 40px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #1a73e8; text-align: center; }
+        h2 { border-bottom: 3px solid #1a73e8; padding-bottom: 10px; margin-bottom: 25px; color: #1a73e8; }
+        .section { margin-bottom: 30px; }
+        h3 { background: #e8f0fe; padding: 10px 15px; border-radius: 6px; color: #1967d2; font-size: 18px; margin-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+        th { text-align: left; background: #f8f9fa; padding: 12px; border-bottom: 2px solid #ddd; }
+        td { padding: 10px; border-bottom: 1px solid #eee; font-size: 14px; word-break: break-all; }
+        .issue-row { background-color: #fce8e6; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>K8s Performance & Health Dashboard</h1>
+    <p style='text-align:center;'>Report Date: 2026-02-13</p>
+        <div class='card'>
+        <h2>Cluster: https://10.200.31.34:6443</h2>
+        <div class='section'>
+            <h3>1. Infrastructure & Node Status</h3>
+            <table>
+                <thead><tr><th>Name</th><th>Status</th><th>Role</th><th>ESXi Host</th><th>CPU (Alloc/Used)</th><th>Mem (Alloc/Used)</th></tr></thead>
+                <tbody><tr><td>kdw-lb-hjvg9-g6c7b</td><td style='color:#28a745;font-weight:bold;'>True</td><td>Control-Plane</td><td>fu-02.vks.lab</td><td>1.93 / 0.149</td><td>6045.01 / 1611.04</td></tr><tr><td>kdw-lb-md-tlkvs-9mbgj-c6jqg</td><td style='color:#28a745;font-weight:bold;'>True</td><td>Worker</td><td>fu-02.vks.lab</td><td>1.93 / 0.0594</td><td>6045.02 / 658.8</td></tr></tbody>
+            </table>
+        </div>
+        <div class='section'>
+            <h3>2. Pod Health Issues</h3>
+            <table>
+                <thead><tr><th>Namespace</th><th>Pod Name</th><th>Status/Reason</th><th>Restarts</th></tr></thead>
+                <tbody><tr class='issue-row'><td>nginx</td><td>nginx-b84fb8d-fwpsb</td><td>Pending</td><td>0</td></tr><tr class='issue-row'><td>nginx</td><td>nginx-b84fb8d-jqbv9</td><td>Pending</td><td>0</td></tr></tbody>
+            </table>
+        </div>
+        <div class='section'>
+            <h3>3. Service Exposure (LoadBalancer)</h3>
+            <table>
+                <thead><tr><th>Namespace</th><th>Service Name</th><th>Type</th><th>External Endpoint</th></tr></thead>
+                <tbody><tr><td>nginx</td><td>nginx</td><td>LoadBalancer</td><td>10.200.31.1</td></tr></tbody>
+            </table>
+        </div>
+        <div class='section'>
+            <h3>4. Ingress Rules</h3>
+            <table>
+                <thead><tr><th>Namespace</th><th>Ingress Name</th><th>Hosts</th><th>Address</th></tr></thead>
+                <tbody><tr><td>nginx</td><td>nginx</td><td>*</td><td>Pending</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
