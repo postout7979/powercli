@@ -2,7 +2,7 @@
 폴더 구조<br>
 - k8s_health_summary<br>
 - k8s_resource<br>
-###
+
 k8s_health_summary: kubernetes 공개 API URL인 version, healthz, readyz등을 호출하여, 해당 정보를 출력<br>
 k8s_resource: token 정보를 사용해서, K8s내 node, pod, service에 대한 정보를 조회<br>
   - node: 노드 정보 표시<br>
@@ -10,7 +10,6 @@ k8s_resource: token 정보를 사용해서, K8s내 node, pod, service에 대한 
   - service: 서비스 현황 표시<br>
   - ingress: ingress 현황 표시<br>
 <br>
-###
 k8s_health_summary
 - ips.txt에 호출 대상 cluster API 주소를 기재합니다.(line by line으로 다수 기입)
 - main.ps1을 실행합니다.
