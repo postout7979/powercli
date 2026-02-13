@@ -2,9 +2,9 @@
 폴더 구조<br>
 - k8s_health_summary<br>
 - k8s_resource<br>
-<br><br>
-k8s_health_summary: kubernetes 공개 API URL인 version, healthz, readyz등을 호출하여, 해당 정보를 출력<br>
-k8s_resource: token 정보를 사용해서, K8s내 node, pod, service에 대한 정보를 조회<br>
+
+### k8s_health_summary: kubernetes 공개 API URL인 version, healthz, readyz등을 호출하여, 해당 정보를 출력<br>
+### k8s_resource: token 정보를 사용해서, K8s내 node, pod, service에 대한 정보를 조회<br>
   - node: 노드 정보 표시<br>
   - pod: 문제가 있는 대상만 표시<br>
   - service: 서비스 현황 표시<br>
