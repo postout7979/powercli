@@ -1,8 +1,12 @@
 # VCF Operations 가상화 인프라 운영 현황 리포트 생성기 (PowerShell / HTML 전용)
+이 스크립트는 Claude를 통해서 생성되었습니다.
 
 Python 버전(`vcf_ops_report/`)을 PowerShell로 변환한 버전입니다. **PPTX는 이 버전에서
 다루지 않으며, HTML 리포트만 생성**합니다. REST API(`Invoke-RestMethod`) 방식을 그대로
 유지했습니다.
+
+## 사용 목적
+월간 리포트 혹은 일간 리포트로 이전 달 혹은 이전 일의 데이터와 변화량 비교
 
 ## ⚠️ 실행 환경에 대한 중요 안내
 
@@ -271,4 +275,15 @@ $propsMap = $VmList | ForEach-Object -Parallel {
 
 출력 샘플
 <img width="1241" height="1122" alt="image" src="https://github.com/user-attachments/assets/b2b287be-f25c-49a8-8d06-6aff9dccb29b" />
+<img width="1235" height="1130" alt="image" src="https://github.com/user-attachments/assets/f8ba095e-03f1-4251-82d7-d2be9c076165" />
+<img width="1237" height="1101" alt="image" src="https://github.com/user-attachments/assets/0e81e162-c6af-4438-a8d7-901ee3ea7d68" />
+<img width="1242" height="1103" alt="image" src="https://github.com/user-attachments/assets/0fcbb4ea-d9e7-4de0-ba80-8cfabb046e97" />
+<img width="1238" height="1116" alt="image" src="https://github.com/user-attachments/assets/cc60bf1e-8d3e-41c7-af7f-2cdc978e3f43" />
+<img width="1251" height="1101" alt="image" src="https://github.com/user-attachments/assets/e5bc6437-8831-4166-a4f8-19cbff912dce" />
+<img width="1240" height="594" alt="image" src="https://github.com/user-attachments/assets/47adfcf5-12b5-4c16-93bf-34dd5968ede2" />
+
+
+
+
+
 
