@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HYUNDAI Motors 가상화 인프라 운영 현황 리포트</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>:root {
+  --bg:#F5F6FB; --surface:#FFFFFF; --surface-alt:#F0F2FA;
+  --border:#E3E6F2;
+  --text:#2E3148; --text2:#6B7090; --muted:#9498B0;
+  --primary:#6C7FE8; --primary-dark:#4C5FCB; --primary-tint:#E7EAFB;
+  --mint:#7FD8C4; --mint-dark:#2F9C82; --mint-tint:#E3F7F1;
+  --peach:#F6B88A; --peach-dark:#C97A33; --peach-tint:#FCEADC;
+  --coral:#F08C8C; --coral-dark:#C84B4B; --coral-tint:#FCE3E3;
+  --sky:#8FC7F2; --sky-dark:#3E7FB0; --sky-tint:#E7F3FC;
+  --lilac:#C6A8E8;
+}
+* { box-sizing:border-box; }
+html,body { margin:0; padding:0; background:var(--bg); color:var(--text);
+  font-family:'Pretendard','Noto Sans KR','Segoe UI',sans-serif; font-size:15px; line-height:1.6; }
+.wrap { max-width:1280px; margin:0 auto; padding:0 28px 80px; }
+
+.hero { background:linear-gradient(135deg, var(--primary-tint) 0%, var(--sky-tint) 60%, var(--mint-tint) 100%);
+  padding:40px 28px 32px; border-radius:0 0 28px 28px; margin-bottom:28px; }
+.hero-inner { max-width:1280px; margin:0 auto; display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px;}
+.hero-eyebrow { color:var(--primary-dark); font-weight:700; letter-spacing:.04em; font-size:13px; text-transform:uppercase; }
+.hero h1 { font-size:30px; font-weight:800; margin:8px 0 6px; color:var(--text); }
+.hero .sub { color:var(--text2); font-size:14.5px; }
+.hero .meta-box { background:rgba(255,255,255,.7); border-radius:16px; padding:14px 20px; font-size:13.5px; color:var(--text2); min-width:260px; }
+.hero .meta-box b { color:var(--text); }
+
+.nav { position:sticky; top:0; z-index:50; background:rgba(245,246,251,.92); backdrop-filter:blur(6px);
+  border-bottom:1px solid var(--border); padding:10px 28px; display:flex; gap:6px; flex-wrap:wrap; }
+.nav a { color:var(--text2); text-decoration:none; font-size:13px; font-weight:600; padding:7px 13px;
+  border-radius:20px; white-space:nowrap; margin-right:4px; }
+.nav a:hover { background:var(--primary-tint); color:var(--primary-dark); }
+
+section { margin:46px 0; }
+.section-head { display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+.section-icon { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-size:17px; background:var(--primary-tint); color:var(--primary-dark); flex-shrink:0; }
+.section-head h2 { font-size:21px; font-weight:800; margin:0; color:var(--text); }
+.section-head .desc { color:var(--muted); font-size:13px; margin-top:2px; }
+
+.grid3, .grid4, .grid2 { display:flex; flex-wrap:wrap; gap:18px; }
+.grid3 > * { flex:1 1 calc(33.333% - 18px); min-width:280px; }
+.grid4 > * { flex:1 1 calc(25% - 16px); min-width:230px; }
+.grid2 > * { flex:1 1 calc(50% - 18px); min-width:320px; }
+@media (max-width:980px) { .grid3 > *, .grid4 > * { flex:1 1 calc(50% - 18px); } }
+@media (max-width:640px) { .grid3 > *, .grid4 > *, .grid2 > * { flex:1 1 100%; } }
+
+.card { background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:22px;
+  box-shadow:0 2px 14px rgba(46,49,72,.05); }
+.kpi-card .label { font-size:13px; color:var(--text2); font-weight:600; }
+.kpi-card .value { font-size:30px; font-weight:800; margin:6px 0 4px; color:var(--text); }
+.kpi-card .value .unit { font-size:15px; font-weight:600; color:var(--muted); margin-left:4px;}
+.delta { font-size:12.5px; font-weight:700; padding:2px 8px; border-radius:10px; }
+.delta.up { color:var(--coral-dark); background:var(--coral-tint); }
+.delta.down { color:var(--mint-dark); background:var(--mint-tint); }
+.delta.flat { color:var(--text2); background:var(--surface-alt); }
+.kpi-card .delta-row { display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--muted); }
+.kpi-card .delta-row .delta { margin-right:6px; }
+
+.cluster-card .ch { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;}
+.cluster-card .ch .name { font-weight:800; font-size:16px; }
+.cluster-card .ch .dc { font-size:12px; color:var(--muted); }
+.metric-row { margin-bottom:12px; }
+.metric-row .mrow-top { display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px; }
+.metric-row .mrow-top .mlabel { color:var(--text2); font-weight:600; }
+.metric-row .mrow-top .mval { font-weight:700; color:var(--text); }
+.bar-track { height:8px; border-radius:6px; background:var(--surface-alt); overflow:hidden; }
+.bar-fill { height:100%; border-radius:6px; }
+.sub-stats { display:flex; gap:14px; margin-top:14px; padding-top:12px; border-top:1px dashed var(--border); }
+.sub-stat { font-size:12px; color:var(--text2); margin-right:14px; }
+.sub-stat:last-child { margin-right:0; }
+.sub-stat b { display:block; font-size:14px; color:var(--text); font-weight:800; }
+
+.table-card { background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:6px 6px 14px;
+  box-shadow:0 2px 14px rgba(46,49,72,.05); overflow:hidden; }
+.table-toolbar { display:flex; justify-content:space-between; align-items:center; padding:14px 18px 8px; gap:10px; flex-wrap:wrap;}
+.table-toolbar .count { font-size:12.5px; color:var(--muted); }
+.search-box { border:1px solid var(--border); border-radius:10px; padding:7px 12px; font-size:13px;
+  background:var(--surface-alt); color:var(--text); width:230px; }
+.search-box:focus { outline:2px solid var(--primary-tint); }
+table { width:100%; border-collapse:collapse; font-size:13.5px; }
+thead th { background:var(--surface-alt); color:var(--text2); font-weight:700; text-align:left;
+  padding:10px 14px; font-size:12.5px; position:sticky; top:0; }
+tbody td { padding:9px 14px; border-bottom:1px solid var(--border); color:var(--text); }
+tbody tr:hover { background:var(--primary-tint); }
+.badge { font-size:11.5px; font-weight:700; padding:3px 10px; border-radius:10px; white-space:nowrap; }
+.num { text-align:center; font-weight:600; }
+.scroll-y { max-height:560px; overflow-y:auto; }
+.mono { font-family:'SF Mono','Consolas',monospace; font-size:12.5px; color:var(--text2); }
+.tag { display:inline-block; font-size:11px; padding:2px 8px; border-radius:8px; background:var(--surface-alt); color:var(--text2); margin-right:4px;}
+.tag.thin { background:var(--mint-tint); color:var(--mint-dark); }
+.tag.thick { background:var(--sky-tint); color:var(--sky-dark); }
+.tag.shared { background:var(--peach-tint); color:var(--peach-dark); }
+
+.foot { text-align:center; color:var(--muted); font-size:12px; margin-top:60px; }
+.legend { display:flex; gap:16px; font-size:12px; color:var(--text2); margin-top:10px; flex-wrap:wrap;}
+.legend span { display:inline-flex; align-items:center; gap:6px; margin-right:16px; }
+.legend i { width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:6px; }
+
+.bd-title { font-weight:800; font-size:14.5px; color:var(--text); margin-bottom:14px; }
+.bd-title .bd-total { font-weight:600; font-size:12px; color:var(--muted); margin-left:8px; }
+.bd-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; font-size:12.5px; }
+.bd-label { width:38%; color:var(--text2); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.bd-bar-track { flex:1; height:9px; border-radius:6px; background:var(--surface-alt); overflow:hidden; }
+.bd-bar-fill { height:100%; border-radius:6px; background:var(--primary); }
+.bd-count { width:88px; text-align:right; color:var(--text); font-weight:700; white-space:nowrap; }
+.bd-count .bd-pct { color:var(--muted); font-weight:500; }
+
+.stacked-bar { display:flex; height:14px; border-radius:7px; overflow:hidden; background:var(--surface-alt); margin-bottom:14px; }
+.stacked-bar .seg.normal { background:var(--mint); }
+.stacked-bar .seg.warning { background:var(--peach); }
+.stacked-bar .seg.critical { background:var(--coral); }
+.status-legend-row { display:flex; gap:16px; font-size:12.5px; color:var(--text2); flex-wrap:wrap; }
+.status-legend-row .dot { width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:6px; }
+.status-legend-row .dot.normal { background:var(--mint-dark); }
+.status-legend-row .dot.warning { background:var(--peach-dark); }
+.status-legend-row .dot.critical { background:var(--coral-dark); }
+
+@media print {
+  .nav { position:static; }
+  .search-box { display:none; }
+  .table-toolbar .search-box { display:none; }
+  .scroll-y { max-height:none !important; overflow:visible !important; }
+  section { break-inside:avoid-page; }
+  body { background:#fff; }
+}</style>
+</head>
+<body>
+<div class="nav"><a href="#exec">Executive Summary</a><a href="#inventory">리소스 현황</a><a href="#cluster">클러스터 성능</a><a href="#datastore">데이터스토어</a><a href="#hosts">ESXi 호스트</a><a href="#vm-top">VM Top 리스트</a><a href="#ops">운영 참고사항</a><a href="#vm-inv">VM 인벤토리</a><a href="#vm-thick">Thick 디스크</a><a href="#vm-shared">공유 디스크</a><a href="#vm-perf">VM 성능정보</a></div><div class="wrap"><div class="hero"><div class="hero-inner">
+  <div>
+    <div class="hero-eyebrow">VCF Operations · Capacity &amp; Health Report</div>
+    <h1>HYUNDAI Motors 가상화 인프라 운영 현황 리포트</h1>
+    <div class="sub">VCF Ops: vcf-ops.vcf.local</div>
+  </div>
+  <div class="meta-box">
+    조회 기준일 &nbsp;<b>2026-06-22</b><br>
+    비교 기준일( 전) &nbsp;<b>2026-05-23</b><br>
+    생성: VCF Operations Capacity & Health Report Generator (PowerShell)
+  </div>
+</div></div><section><div class="section-head" id="exec">
+  <div class="section-icon">Σ</div>
+  <div><h2>Executive Summary</h2><div class="desc">최근 인프라 성능 요약 ( 전 대비)</div></div>
+</div><div class="grid3"><div class="card kpi-card">
+  <div class="label">평균 CPU 사용률</div>
+  <div class="value">37.8<span class="unit">%</span></div>
+  <div class="delta-row"><span class="delta down">▼ 11.0</span> <span> 전 대비 (이전 48.8%)</span></div>
+</div><div class="card kpi-card">
+  <div class="label">평균 메모리 사용률</div>
+  <div class="value">66.5<span class="unit">%</span></div>
+  <div class="delta-row"><span class="delta down">▼ 8.4</span> <span> 전 대비 (이전 74.9%)</span></div>
+</div><div class="card kpi-card">
+  <div class="label">스토리지 사용량</div>
+  <div class="value">48.1<span class="unit">TB</span></div>
+  <div class="delta-row"><span class="delta down">▼ 2.3</span> <span> 전 대비 (이전 50.4TB)</span></div>
+</div></div></section><section><div class="section-head" id="inventory">
+  <div class="section-icon">📊</div>
+  <div><h2>리소스 현황 (수량 변화)</h2><div class="desc">vCenter / 데이터센터 / 클러스터 / 호스트 / VM 수량</div></div>
+</div><div class="grid3"><div class="card kpi-card">
+  <div class="label">🌐 vCenter</div>
+  <div class="value">3<span class="unit">대</span></div>
+  <div class="delta-row"><span class="delta flat">– 0.0</span> <span>이전 3 → 변화율 0.0% <span style="color:var(--mint-dark);font-size:10.5px;">(실측)</span></span></div>
+  
+</div><div class="card kpi-card">
+  <div class="label">🏢 데이터센터</div>
+  <div class="value">3<span class="unit">대</span></div>
+  <div class="delta-row"><span class="delta flat">– 0.0</span> <span>이전 3 → 변화율 0.0% <span style="color:var(--mint-dark);font-size:10.5px;">(실측)</span></span></div>
+  
+</div><div class="card kpi-card">
+  <div class="label">🧩 클러스터</div>
+  <div class="value">3<span class="unit">대</span></div>
+  <div class="delta-row"><span class="delta flat">– 0.0</span> <span>이전 3 → 변화율 0.0% <span style="color:var(--mint-dark);font-size:10.5px;">(실측)</span></span></div>
+  
+</div><div class="card kpi-card">
+  <div class="label">🖥️ ESXi 호스트</div>
+  <div class="value">11<span class="unit">대</span></div>
+  <div class="delta-row"><span class="delta flat">– 0.0</span> <span>이전 11 → 변화율 0.0% <span style="color:var(--mint-dark);font-size:10.5px;">(실측)</span></span></div>
+  
+</div><div class="card kpi-card">
+  <div class="label">🧱 가상머신</div>
+  <div class="value">266<span class="unit">대</span></div>
+  <div class="delta-row"><span class="delta up">▲ 54.0</span> <span>이전 212 → 변화율 25.5% <span style="color:var(--mint-dark);font-size:10.5px;">(실측)</span></span></div>
+  <div style="font-size:11.5px;color:var(--text2);margin-top:6px;">🟢 켜짐 174대 &nbsp;·&nbsp; ⚪ 꺼짐 92대</div>
+</div></div></section><section><div class="section-head" id="cluster">
+  <div class="section-icon">🧩</div>
+  <div><h2>클러스터별 성능 현황</h2><div class="desc">CPU / Memory / Storage 실사용량·비율, CPU 경합률 ( 전 대비)</div></div>
+</div><div class="grid3"><div class="card cluster-card">
+  <div class="ch">
+    <div><div class="name">Cluster</div><div class="dc">Datacenter · 호스트 3대 · VM 76대</div></div>
+    <span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span>
+  </div>
+
+  <div class="metric-row">
+    <div class="mrow-top"><span class="mlabel">CPU</span><span class="mval">102.6 / 172.4 GHz &nbsp;(59.5%) <span class="delta up">▲ 0.6</span></span></div>
+    <div class="bar-track"><div class="bar-fill" style="width:60%;background:#2F9C82;"></div></div>
+  </div>
+  <div class="metric-row">
+    <div class="mrow-top"><span class="mlabel">Memory</span><span class="mval">870.2 / 1,150.1 GB &nbsp;(75.7%) <span class="delta down">▼ 0.8</span></span></div>
+    <div class="bar-track"><div class="bar-fill" style="width:76%;background:#C97A33;"></div></div>
+  </div>
+  <div class="metric-row">
+    <div class="mrow-top"><span class="mlabel">Storage</span><span class="mval">6.50 / 25.25 TB &nbsp;(25.7%) <span class="delta up">▲ 0.2</span></span></div>
+    <div class="bar-track"><div class="bar-fill" style="width:26%;background:#2F9C82;"></div></div>
+  </div>
+
+  <div class="sub-stats">
+    <div class="sub-stat">CPU 경합(Ready)<b style="color:#2F9C82">0.6%</b> <span class="delta down">▼ 0.3</span></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-top:8px;"> 전 대비</div>
+</div><div class="card cluster-card">
+  <div class="ch">
+    <div><div class="name">MD-HCS-cl01</div><div class="dc">MD-HCS-dc01 · 호스트 4대 · VM 44대</div></div>
+    <span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span>
+  </div>
+
+  <div class="metric-row">
+    <div class="mrow-top"><span class="mlabel">CPU</span><span class="mval">90.1 / 537.6 GHz &nbsp;(16.8%) <span class="delta down">▼ 5.4</span></span></div>
+    <div class="bar-track"><div class="bar-fill" style="width:17%;background:#2F9C82;"></div></div>
+  </div>
+  <div class="metric-row">
+    <div class="mrow-top"><span class="mlabel">Memory</span><span class="mval">1,159.7 / 2,047.0 GB &nbsp;(56.7%) <span class="delta down">▼ 1.6</span></span></div>
+    <div class="bar-track"><div class="bar-fill" style="width:57%;background:#2F9C82;"></div></div>
+  </div>
+  <div class="metric-row">
+    <div class="mrow-top"><span class="mlabel">Storage</span><span class="mval">18.27 / 32.54 TB &nbsp;(56.1%) <span class="delta up">▲ 15.0</span></span></div>
+    <div class="bar-track"><div class="bar-fill" style="width:56%;background:#2F9C82;"></div></div>
+  </div>
+
+  <div class="sub-stats">
+    <div class="sub-stat">CPU 경합(Ready)<b style="color:#2F9C82">0.2%</b> <span class="delta flat">– 0.0</span></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-top:8px;"> 전 대비</div>
+</div><div class="card cluster-card">
+  <div class="ch">
+    <div><div class="name">WD-HCS-cl01</div><div class="dc">vcf-wd-DC · 호스트 4대 · VM 91대</div></div>
+    <span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span>
+  </div>
+
+  <div class="metric-row">
+    <div class="mrow-top"><span class="mlabel">CPU</span><span class="mval">189.9 / 510.8 GHz &nbsp;(37.2%) <span class="delta down">▼ 28.1</span></span></div>
+    <div class="bar-track"><div class="bar-fill" style="width:37%;background:#2F9C82;"></div></div>
+  </div>
+  <div class="metric-row">
+    <div class="mrow-top"><span class="mlabel">Memory</span><span class="mval">2,055.0 / 3,068.9 GB &nbsp;(67%) <span class="delta down">▼ 22.8</span></span></div>
+    <div class="bar-track"><div class="bar-fill" style="width:67%;background:#2F9C82;"></div></div>
+  </div>
+  <div class="metric-row">
+    <div class="mrow-top"><span class="mlabel">Storage</span><span class="mval">23.36 / 55.24 TB &nbsp;(42.3%) <span class="delta down">▼ 13.1</span></span></div>
+    <div class="bar-track"><div class="bar-fill" style="width:42%;background:#2F9C82;"></div></div>
+  </div>
+
+  <div class="sub-stats">
+    <div class="sub-stat">CPU 경합(Ready)<b style="color:#2F9C82">0.3%</b> <span class="delta down">▼ 1.4</span></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-top:8px;"> 전 대비</div>
+</div></div><div class="legend">
+  <span><i style="background:var(--mint-dark)"></i>정상(&lt;70%)</span>
+  <span><i style="background:var(--peach-dark)"></i>주의(70~85%)</span>
+  <span><i style="background:var(--coral-dark)"></i>위험(≥85% 또는 경합 ≥10%)</span>
+</div></section><section><div class="section-head" id="datastore">
+  <div class="section-icon">💾</div>
+  <div><h2>데이터스토어 현황</h2><div class="desc">데이터스토어 용량/사용량 —  전 대비 증감</div></div>
+</div>
+<div class="table-card">
+  <div class="table-toolbar">
+    <input class="search-box" id="dsSearch" placeholder="데이터스토어 검색..." onkeyup="filterTable('dsSearch','dsTable')">
+    <span class="count" id="dsTable-count">8 행 표시</span>
+  </div>
+  <div class="scroll-y">
+  <table id="dsTable">
+    <thead><tr><th>데이터스토어</th><th>총량</th><th>현재 사용량</th><th>이전 사용량</th><th>증감</th><th>잔여 용량</th></tr></thead>
+    <tbody><tr><td>HCS-TrueNAS-iSCSI</td><td class="num">8,806.2 GB</td><td class="num">3,593.2 GB (40.8%)</td><td class="num">3,722.7 GB</td><td class="num"><span class="delta down">▼ 129.6</span></td><td class="num">5,213.1 GB (59.2%)</td></tr><tr><td>HCS-TrueNAS-iSCSI</td><td class="num">8,806.2 GB</td><td class="num">3,593.2 GB (40.8%)</td><td class="num">3,722.7 GB</td><td class="num"><span class="delta down">▼ 129.6</span></td><td class="num">5,213.1 GB (59.2%)</td></tr><tr><td>HCS-TrueNAS-iSCSI</td><td class="num">8,806.2 GB</td><td class="num">3,586.5 GB (40.7%)</td><td class="num">3,722.7 GB</td><td class="num"><span class="delta down">▼ 136.2</span></td><td class="num">5,219.7 GB (59.3%)</td></tr><tr><td>ISOArchive</td><td class="num">0.0 GB</td><td class="num">0.0 GB (0%)</td><td class="num"><span style="color:var(--muted);">비교 없음</span></td><td class="num"><span style="color:var(--muted);">비교 없음</span></td><td class="num">0.0 GB (0%)</td></tr><tr><td>ISOArchive</td><td class="num">0.0 GB</td><td class="num">0.0 GB (0%)</td><td class="num"><span style="color:var(--muted);">비교 없음</span></td><td class="num"><span style="color:var(--muted);">비교 없음</span></td><td class="num">0.0 GB (0%)</td></tr><tr><td>MD-HCS-cl01-ds-vsan01</td><td class="num">21,455.5 GB</td><td class="num">19,046.0 GB (88.8%)</td><td class="num">13,778.7 GB</td><td class="num"><span class="delta up">▲ 5,267.3</span></td><td class="num">2,409.5 GB (11.2%)</td></tr><tr><td>vsanDatastore</td><td class="num">16,096.4 GB</td><td class="num">10,481.3 GB (65.1%)</td><td class="num">10,452.2 GB</td><td class="num"><span class="delta up">▲ 29.1</span></td><td class="num">5,615.2 GB (34.9%)</td></tr><tr><td>WD-HCS-cl01-vsan01</td><td class="num">46,484.5 GB</td><td class="num">28,476.6 GB (61.3%)</td><td class="num">33,643.5 GB</td><td class="num"><span class="delta down">▼ 5,166.9</span></td><td class="num">18,007.9 GB (38.7%)</td></tr></tbody>
+  </table>
+  </div>
+</div>
+</section><section><div class="section-head" id="hosts">
+  <div class="section-icon">🖥️</div>
+  <div><h2>ESXi 호스트 Top 리스트</h2><div class="desc">IP 주소 제외 · CPU 사용률 / MEM 사용률 / CPU 경합률 각각 상위 10대</div></div>
+</div><div class="card" style="padding:0;margin-bottom:18px;">
+  <div style="padding:18px 20px 4px;font-weight:800;font-size:14.5px;">CPU 사용률 Top10</div>
+  <div class="table-toolbar"><span class="count">상위 10대</span></div>
+  <div class="scroll-y" style="max-height:480px;">
+  <table id="hostCpuTop"><thead><tr><th>#</th><th>호스트명</th><th>클러스터</th><th>CPU 사용률</th><th>상태</th></tr></thead><tbody><tr><td>1</td><td>fu-01.vks.lab</td><td>Cluster</td><td class="num">67.8%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>2</td><td>fu-03.vks.lab</td><td>Cluster</td><td class="num">58.8%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>3</td><td>fu-02.vks.lab</td><td>Cluster</td><td class="num">52%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>4</td><td>wd-esxi02.vcf.local</td><td>WD-HCS-cl01</td><td class="num">51.6%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>5</td><td>wd-esxi03.vcf.local</td><td>WD-HCS-cl01</td><td class="num">49%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>6</td><td>wd-esxi01.vcf.local</td><td>WD-HCS-cl01</td><td class="num">24.2%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>7</td><td>wd-esxi04.vcf.local</td><td>WD-HCS-cl01</td><td class="num">24%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>8</td><td>md-esxi04.vcf.local</td><td>MD-HCS-cl01</td><td class="num">21.6%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>9</td><td>md-esxi02.vcf.local</td><td>MD-HCS-cl01</td><td class="num">20.1%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>10</td><td>md-esxi03.vcf.local</td><td>MD-HCS-cl01</td><td class="num">15.6%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr></tbody></table>
+  </div>
+</div><div class="card" style="padding:0;margin-bottom:18px;">
+  <div style="padding:18px 20px 4px;font-weight:800;font-size:14.5px;">MEM 사용률 Top10</div>
+  <div class="table-toolbar"><span class="count">상위 10대</span></div>
+  <div class="scroll-y" style="max-height:480px;">
+  <table id="hostMemTop"><thead><tr><th>#</th><th>호스트명</th><th>클러스터</th><th>MEM 사용률</th><th>상태</th></tr></thead><tbody><tr><td>1</td><td>fu-02.vks.lab</td><td>Cluster</td><td class="num">79%</td><td><span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span></td></tr><tr><td>2</td><td>fu-01.vks.lab</td><td>Cluster</td><td class="num">75.8%</td><td><span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span></td></tr><tr><td>3</td><td>wd-esxi04.vcf.local</td><td>WD-HCS-cl01</td><td class="num">73.7%</td><td><span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span></td></tr><tr><td>4</td><td>wd-esxi01.vcf.local</td><td>WD-HCS-cl01</td><td class="num">72.2%</td><td><span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span></td></tr><tr><td>5</td><td>fu-03.vks.lab</td><td>Cluster</td><td class="num">72.2%</td><td><span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span></td></tr><tr><td>6</td><td>wd-esxi03.vcf.local</td><td>WD-HCS-cl01</td><td class="num">63.4%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>7</td><td>md-esxi03.vcf.local</td><td>MD-HCS-cl01</td><td class="num">61.9%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>8</td><td>wd-esxi02.vcf.local</td><td>WD-HCS-cl01</td><td class="num">58.5%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>9</td><td>md-esxi02.vcf.local</td><td>MD-HCS-cl01</td><td class="num">56%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>10</td><td>md-esxi04.vcf.local</td><td>MD-HCS-cl01</td><td class="num">55.8%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr></tbody></table>
+  </div>
+</div><div class="card" style="padding:0;margin-bottom:18px;">
+  <div style="padding:18px 20px 4px;font-weight:800;font-size:14.5px;">CPU 경합률 Top10</div>
+  <div class="table-toolbar"><span class="count">상위 10대</span></div>
+  <div class="scroll-y" style="max-height:480px;">
+  <table id="hostContTop"><thead><tr><th>#</th><th>호스트명</th><th>클러스터</th><th>CPU 경합률</th><th>상태</th></tr></thead><tbody><tr><td>1</td><td>fu-03.vks.lab</td><td>Cluster</td><td class="num">1.7%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>2</td><td>fu-02.vks.lab</td><td>Cluster</td><td class="num">1.4%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>3</td><td>fu-01.vks.lab</td><td>Cluster</td><td class="num">1.3%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>4</td><td>wd-esxi03.vcf.local</td><td>WD-HCS-cl01</td><td class="num">0.8%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>5</td><td>wd-esxi01.vcf.local</td><td>WD-HCS-cl01</td><td class="num">0.7%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>6</td><td>md-esxi04.vcf.local</td><td>MD-HCS-cl01</td><td class="num">0.5%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>7</td><td>wd-esxi04.vcf.local</td><td>WD-HCS-cl01</td><td class="num">0.5%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>8</td><td>md-esxi02.vcf.local</td><td>MD-HCS-cl01</td><td class="num">0.3%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>9</td><td>wd-esxi02.vcf.local</td><td>WD-HCS-cl01</td><td class="num">0.3%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>10</td><td>md-esxi03.vcf.local</td><td>MD-HCS-cl01</td><td class="num">0.2%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr></tbody></table>
+  </div>
+</div></section><section><div class="section-head" id="vm-top">
+  <div class="section-icon">🔥</div>
+  <div><h2>VM Top 리스트</h2><div class="desc">vCPU 사용률 / CPU 경합(Ready) / 가상디스크 레이턴시 각각 상위 10대</div></div>
+</div><div class="card" style="padding:0;margin-bottom:18px;">
+  <div style="padding:18px 20px 4px;font-weight:800;font-size:14.5px;">vCPU 사용률 Top10</div>
+  <div class="table-toolbar"><span class="count">상위 10건</span></div>
+  <div class="scroll-y" style="max-height:480px;">
+  <table id="vmCpuTop"><thead><tr><th>#</th><th>VM명</th><th>클러스터</th><th>호스트</th><th>vCPU</th><th>사용률</th><th>상태</th></tr></thead><tbody><tr><td>1</td><td>bwj-esxi04</td><td>WD-HCS-cl01</td><td>wd-esxi03.vcf.local</td><td class="num">16</td><td class="num">58.5%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>2</td><td>bwj-esxi02</td><td>WD-HCS-cl01</td><td>wd-esxi03.vcf.local</td><td class="num">24</td><td class="num">50.6%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>3</td><td>bwj-esxi01</td><td>WD-HCS-cl01</td><td>wd-esxi02.vcf.local</td><td class="num">16</td><td class="num">46.4%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>4</td><td>bwj-esxi03</td><td>WD-HCS-cl01</td><td>wd-esxi02.vcf.local</td><td class="num">32</td><td class="num">45.9%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>5</td><td>vcf-vrli01</td><td>MD-HCS-cl01</td><td>md-esxi04.vcf.local</td><td class="num">4</td><td class="num">39.4%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>6</td><td>tmc-workload-cluster-md-6ddld-jrnjr-7ddc9</td><td>Cluster</td><td>fu-03.vks.lab</td><td class="num">8</td><td class="num">33.8%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>7</td><td>nsx01</td><td>Cluster</td><td>fu-02.vks.lab</td><td class="num">6</td><td class="num">33.5%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>8</td><td>tmc-workload-cluster-md-6ddld-jrnjr-q44rc</td><td>Cluster</td><td>fu-01.vks.lab</td><td class="num">8</td><td class="num">30.9%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>9</td><td>wd-nsx03</td><td>MD-HCS-cl01</td><td>md-esxi04.vcf.local</td><td class="num">6</td><td class="num">30.3%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>10</td><td>SupervisorControlPlaneVM (4)</td><td>Cluster</td><td>fu-03.vks.lab</td><td class="num">4</td><td class="num">29.2%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr></tbody></table>
+  </div>
+</div><div class="card" style="padding:0;margin-bottom:18px;">
+  <div style="padding:18px 20px 4px;font-weight:800;font-size:14.5px;">CPU 경합(Ready) Top10</div>
+  <div class="table-toolbar"><span class="count">상위 10건</span></div>
+  <div class="scroll-y" style="max-height:480px;">
+  <table id="vmReadyTop"><thead><tr><th>#</th><th>VM명</th><th>클러스터</th><th>호스트</th><th>vCPU</th><th>Ready %</th><th>상태</th></tr></thead><tbody><tr><td>1</td><td>tmc-workload-cluster-md-6ddld-jrnjr-7ddc9</td><td>Cluster</td><td>fu-03.vks.lab</td><td class="num">8</td><td class="num">1.66%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>2</td><td>SupervisorControlPlaneVM (4)</td><td>Cluster</td><td>fu-03.vks.lab</td><td class="num">4</td><td class="num">1.54%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>3</td><td>SupervisorControlPlaneVM (6)</td><td>Cluster</td><td>fu-02.vks.lab</td><td class="num">4</td><td class="num">1.4%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>4</td><td>tmc-workload-cluster-md-6ddld-jrnjr-q44rc</td><td>Cluster</td><td>fu-01.vks.lab</td><td class="num">8</td><td class="num">1.33%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>5</td><td>ssk-ubuntu-01-8fllc-b6pwn</td><td>Cluster</td><td>fu-02.vks.lab</td><td class="num">2</td><td class="num">1.26%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>6</td><td>ssk-cluster-01-wnn68-6rqbp</td><td>Cluster</td><td>fu-02.vks.lab</td><td class="num">2</td><td class="num">1.25%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>7</td><td>WSN-ESXi-02</td><td>Cluster</td><td>fu-03.vks.lab</td><td class="num">40</td><td class="num">1.12%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>8</td><td>test-edge-b</td><td>Cluster</td><td>fu-02.vks.lab</td><td class="num">4</td><td class="num">1.05%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>9</td><td>ssk-ubuntu-02-2dt77-ntbnm</td><td>Cluster</td><td>fu-02.vks.lab</td><td class="num">2</td><td class="num">1.04%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>10</td><td>WSN-ESXi-01</td><td>Cluster</td><td>fu-01.vks.lab</td><td class="num">40</td><td class="num">1%</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr></tbody></table>
+  </div>
+</div><div class="card" style="padding:0;margin-bottom:18px;">
+  <div style="padding:18px 20px 4px;font-weight:800;font-size:14.5px;">가상디스크 레이턴시 Top10</div>
+  <div class="table-toolbar"><span class="count">상위 10건</span></div>
+  <div class="scroll-y" style="max-height:480px;">
+  <table id="vmDiskTop"><thead><tr><th>#</th><th>VM명</th><th>클러스터</th><th>데이터스토어</th><th>Read</th><th>Write</th><th>상태</th></tr></thead><tbody><tr><td>1</td><td>wd-edge02</td><td>WD-HCS-cl01</td><td>WD-HCS-cl01-vsan01</td><td class="num">0 ms</td><td class="num">3.1 ms</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>2</td><td>nc-esxi03</td><td>WD-HCS-cl01</td><td>WD-HCS-cl01-vsan01</td><td class="num">2.9 ms</td><td class="num">0.1 ms</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>3</td><td>bwj-esxi01</td><td>WD-HCS-cl01</td><td>WD-HCS-cl01-vsan01</td><td class="num">2.9 ms</td><td class="num">1.1 ms</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>4</td><td>wd-edge03</td><td>WD-HCS-cl01</td><td>WD-HCS-cl01-vsan01</td><td class="num">0 ms</td><td class="num">2.3 ms</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>5</td><td>bwj-esxi03</td><td>WD-HCS-cl01</td><td>WD-HCS-cl01-vsan01</td><td class="num">2.3 ms</td><td class="num">1.1 ms</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>6</td><td>nc-esxi01</td><td>WD-HCS-cl01</td><td>WD-HCS-cl01-vsan01</td><td class="num">2 ms</td><td class="num">0 ms</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>7</td><td>wsn-esx01</td><td>WD-HCS-cl01</td><td>WD-HCS-cl01-vsan01</td><td class="num">1.7 ms</td><td class="num">0.6 ms</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>8</td><td>bwj-esxi04</td><td>WD-HCS-cl01</td><td>WD-HCS-cl01-vsan01</td><td class="num">1.5 ms</td><td class="num">1 ms</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>9</td><td>md-edge02</td><td>MD-HCS-cl01</td><td>MD-HCS-cl01-ds-vsan01</td><td class="num">0.1 ms</td><td class="num">1.5 ms</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr><tr><td>10</td><td>test-edge-a</td><td>Cluster</td><td>vsanDatastore</td><td class="num">0 ms</td><td class="num">1.3 ms</td><td><span class="badge" style="color:#2F9C82;background:#E3F7F1;">정상</span></td></tr></tbody></table>
+  </div>
+</div></section><section><div class="section-head" id="ops">
+  <div class="section-icon">🛠️</div>
+  <div><h2>운영 참고사항</h2><div class="desc">1주 이상 보존된 VM 스냅샷 — 스토리지 점유 및 성능 영향 점검 필요</div></div>
+</div>
+<div class="table-card">
+  <div class="table-toolbar">
+    <input class="search-box" id="snapSearch" placeholder="VM/클러스터 검색..." onkeyup="filterTable('snapSearch','snapTable')">
+    <span class="count" id="snapTable-count">24 행 표시</span>
+  </div>
+  <div class="scroll-y">
+  <table id="snapTable">
+    <thead><tr><th>VM명</th><th>클러스터</th><th>스냅샷 수</th><th>최장 보존기간</th><th>총 용량</th><th>상태</th></tr></thead>
+    <tbody><tr><td>HIDCMIGTEST</td><td>MD-HCS-cl01</td><td class="num">1</td><td class="num">139일</td><td class="num">0.0 GB</td><td><span class="badge" style="color:#C84B4B;background:#FCE3E3;">위험</span></td></tr><tr><td>ynh-rhel01</td><td>Cluster</td><td class="num">1</td><td class="num">137일</td><td class="num">32.0 GB</td><td><span class="badge" style="color:#C84B4B;background:#FCE3E3;">위험</span></td></tr><tr><td>wsn-ubuntu-24-1</td><td>Cluster</td><td class="num">1</td><td class="num">74일</td><td class="num">40.6 GB</td><td><span class="badge" style="color:#C84B4B;background:#FCE3E3;">위험</span></td></tr><tr><td>depot</td><td>WD-HCS-cl01</td><td class="num">1</td><td class="num">61일</td><td class="num">0.0 GB</td><td><span class="badge" style="color:#C84B4B;background:#FCE3E3;">위험</span></td></tr><tr><td>vcf-collector</td><td>MD-HCS-cl01</td><td class="num">1</td><td class="num">16일</td><td class="num">82.4 GB</td><td><span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span></td></tr><tr><td>nsx-alb-con-node1</td><td>MD-HCS-cl01</td><td class="num">1</td><td class="num">16일</td><td class="num">71.9 GB</td><td><span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span></td></tr><tr><td>vcf-vrni02</td><td>MD-HCS-cl01</td><td class="num">1</td><td class="num">16일</td><td class="num">415.7 GB</td><td><span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span></td></tr><tr><td>vcf-ops02</td><td>MD-HCS-cl01</td><td class="num">1</td><td class="num">16일</td><td class="num">235.8 GB</td><td><span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span></td></tr><tr><td>nsx-alb-con-node0</td><td>MD-HCS-cl01</td><td class="num">1</td><td class="num">16일</td><td class="num">71.9 GB</td><td><span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span></td></tr><tr><td>vcf-vrni-c01</td><td>MD-HCS-cl01</td><td class="num">1</td><td class="num">16일</td><td class="num">214.3 GB</td><td><span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span></td></tr><tr><td>vcf-vrli03</td><td>MD-HCS-cl01</td><td class="num">1</td><td class="num">16일</td><td class="num">1,020.3 GB</td><td><span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span></td></tr><tr><td>vcf-ops</td><td>MD-HCS-cl01</td><td class="num">1</td><td class="num">16일</td><td class="num">270.0 GB</td><td><span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span></td></tr><tr><td>vcf-vrli01</td><td>MD-HCS-cl01</td><td class="num">1</td><td class="num">16일</td><td class="num">1,027.9 GB</td><td><span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span></td></tr><tr><td>vcf-ops01</td><td>MD-HCS-cl01</td><td class="num">1</td><td class="num">16일</td><td class="num">233.6 GB</td><td><span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span></td></tr><tr><td>nsx-alb-con-node2</td><td>MD-HCS-cl01</td><td class="num">1</td><td class="num">16일</td><td class="num">71.7 GB</td><td><span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span></td></tr><tr><td>vcf-vrni01</td><td>MD-HCS-cl01</td><td class="num">1</td><td class="num">16일</td><td class="num">402.6 GB</td><td><span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span></td></tr><tr><td>vcf-vrni03</td><td>MD-HCS-cl01</td><td class="num">1</td><td class="num">16일</td><td class="num">354.7 GB</td><td><span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span></td></tr><tr><td>vcf-vrli02</td><td>MD-HCS-cl01</td><td class="num">1</td><td class="num">16일</td><td class="num">1,019.3 GB</td><td><span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span></td></tr><tr><td>fleet</td><td>MD-HCS-cl01</td><td class="num">1</td><td class="num">16일</td><td class="num">1.4 GB</td><td><span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span></td></tr><tr><td>bwj-esxi04</td><td>WD-HCS-cl01</td><td class="num">1</td><td class="num">15일</td><td class="num">0.0 GB</td><td><span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span></td></tr><tr><td>bwj-esxi02</td><td>WD-HCS-cl01</td><td class="num">1</td><td class="num">15일</td><td class="num">0.0 GB</td><td><span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span></td></tr><tr><td>bwj-esxi01</td><td>WD-HCS-cl01</td><td class="num">1</td><td class="num">15일</td><td class="num">0.0 GB</td><td><span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span></td></tr><tr><td>bwj-esxi03</td><td>WD-HCS-cl01</td><td class="num">1</td><td class="num">15일</td><td class="num">0.0 GB</td><td><span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span></td></tr><tr><td>vcf9-installer</td><td>MD-HCS-cl01</td><td class="num">1</td><td class="num">11일</td><td class="num">85.5 GB</td><td><span class="badge" style="color:#C97A33;background:#FCEADC;">주의</span></td></tr></tbody>
+  </table>
+  </div>
+</div>
+</section><section><div class="section-head" id="vm-inv">
+  <div class="section-icon">🧱</div>
+  <div><h2>VM 인벤토리 요약</h2><div class="desc">Guest OS / VMware Tools 버전 / 가상 HW버전 / vCPU 구간별 VM 수량 분포</div></div>
+</div><div class="grid2"><div class="card">
+  <div class="bd-title">Guest OS별 VM 수량<span class="bd-total">전체 266 대</span></div>
+  <div class="bd-row"><div class="bd-label" title="Ubuntu Linux (64-bit)">Ubuntu Linux (64-bit)</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:20%;"></div></div><div class="bd-count">54대 <span class="bd-pct">(20.3%)</span></div></div><div class="bd-row"><div class="bd-label" title="VMware Photon OS (64-bit)">VMware Photon OS (64-bit)</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:18%;"></div></div><div class="bd-count">47대 <span class="bd-pct">(17.7%)</span></div></div><div class="bd-row"><div class="bd-label" title="Unknown">Unknown</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:17%;"></div></div><div class="bd-count">46대 <span class="bd-pct">(17.3%)</span></div></div><div class="bd-row"><div class="bd-label" title="VMware ESXi 9.0 or later">VMware ESXi 9.0 or later</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:10%;"></div></div><div class="bd-count">27대 <span class="bd-pct">(10.2%)</span></div></div><div class="bd-row"><div class="bd-label" title="VMware ESXi 8.0 or later">VMware ESXi 8.0 or later</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:6%;"></div></div><div class="bd-count">16대 <span class="bd-pct">(6%)</span></div></div><div class="bd-row"><div class="bd-label" title="Other 3.x or later Linux (64-bit)">Other 3.x or later Linux (64-bit)</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:6%;"></div></div><div class="bd-count">15대 <span class="bd-pct">(5.6%)</span></div></div><div class="bd-row"><div class="bd-label" title="VMware ESXi 8">VMware ESXi 8</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:3%;"></div></div><div class="bd-count">9대 <span class="bd-pct">(3.4%)</span></div></div><div class="bd-row"><div class="bd-label" title="Microsoft Windows Server 2025 (64-bit)">Microsoft Windows Server 2025 (64-bit)</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:3%;"></div></div><div class="bd-count">9대 <span class="bd-pct">(3.4%)</span></div></div><div class="bd-row"><div class="bd-label" title="기타 14종">기타 14종</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:16%;"></div></div><div class="bd-count">43대 <span class="bd-pct">(16.2%)</span></div></div>
+</div><div class="card">
+  <div class="bd-title">VMware Tools 버전별 VM 수량<span class="bd-total">전체 266 대</span></div>
+  <div class="bd-row"><div class="bd-label" title="(알수없음)">(알수없음)</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:17%;"></div></div><div class="bd-count">46대 <span class="bd-pct">(17.3%)</span></div></div><div class="bd-row"><div class="bd-label" title="12.5.0">12.5.0</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:16%;"></div></div><div class="bd-count">42대 <span class="bd-pct">(15.8%)</span></div></div><div class="bd-row"><div class="bd-label" title="12.3.5">12.3.5</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:15%;"></div></div><div class="bd-count">39대 <span class="bd-pct">(14.7%)</span></div></div><div class="bd-row"><div class="bd-label" title="13.0.0">13.0.0</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:14%;"></div></div><div class="bd-count">37대 <span class="bd-pct">(13.9%)</span></div></div><div class="bd-row"><div class="bd-label" title="13.1.0">13.1.0</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:6%;"></div></div><div class="bd-count">16대 <span class="bd-pct">(6%)</span></div></div><div class="bd-row"><div class="bd-label" title="13.0.5">13.0.5</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:5%;"></div></div><div class="bd-count">13대 <span class="bd-pct">(4.9%)</span></div></div><div class="bd-row"><div class="bd-label" title="12.5.4">12.5.4</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:4%;"></div></div><div class="bd-count">12대 <span class="bd-pct">(4.5%)</span></div></div><div class="bd-row"><div class="bd-label" title="0">0</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:3%;"></div></div><div class="bd-count">8대 <span class="bd-pct">(3%)</span></div></div><div class="bd-row"><div class="bd-label" title="기타 22종">기타 22종</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:20%;"></div></div><div class="bd-count">53대 <span class="bd-pct">(19.9%)</span></div></div>
+</div><div class="card">
+  <div class="bd-title">Virtual Hardware 버전별 VM 수량<span class="bd-total">전체 266 대</span></div>
+  <div class="bd-row"><div class="bd-label" title="vmx-21">vmx-21</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:35%;"></div></div><div class="bd-count">93대 <span class="bd-pct">(35%)</span></div></div><div class="bd-row"><div class="bd-label" title="vmx-22">vmx-22</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:24%;"></div></div><div class="bd-count">65대 <span class="bd-pct">(24.4%)</span></div></div><div class="bd-row"><div class="bd-label" title="(알수없음)">(알수없음)</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:17%;"></div></div><div class="bd-count">46대 <span class="bd-pct">(17.3%)</span></div></div><div class="bd-row"><div class="bd-label" title="vmx-10">vmx-10</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:5%;"></div></div><div class="bd-count">14대 <span class="bd-pct">(5.3%)</span></div></div><div class="bd-row"><div class="bd-label" title="vmx-11">vmx-11</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:5%;"></div></div><div class="bd-count">13대 <span class="bd-pct">(4.9%)</span></div></div><div class="bd-row"><div class="bd-label" title="vmx-17">vmx-17</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:4%;"></div></div><div class="bd-count">12대 <span class="bd-pct">(4.5%)</span></div></div><div class="bd-row"><div class="bd-label" title="vmx-13">vmx-13</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:4%;"></div></div><div class="bd-count">11대 <span class="bd-pct">(4.1%)</span></div></div><div class="bd-row"><div class="bd-label" title="vmx-19">vmx-19</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:2%;"></div></div><div class="bd-count">4대 <span class="bd-pct">(1.5%)</span></div></div><div class="bd-row"><div class="bd-label" title="기타 2종">기타 2종</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:3%;"></div></div><div class="bd-count">8대 <span class="bd-pct">(3%)</span></div></div>
+</div><div class="card">
+  <div class="bd-title">vCPU 구간별 VM 수량<span class="bd-total">전체 266 대</span></div>
+  <div class="bd-row"><div class="bd-label" title="vCPU 4개 이하">vCPU 4개 이하</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:58%;"></div></div><div class="bd-count">155대 <span class="bd-pct">(58.3%)</span></div></div><div class="bd-row"><div class="bd-label" title="vCPU 5~8개">vCPU 5~8개</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:16%;"></div></div><div class="bd-count">44대 <span class="bd-pct">(16.5%)</span></div></div><div class="bd-row"><div class="bd-label" title="vCPU 9~16개">vCPU 9~16개</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:9%;"></div></div><div class="bd-count">24대 <span class="bd-pct">(9%)</span></div></div><div class="bd-row"><div class="bd-label" title="vCPU 17~32개">vCPU 17~32개</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:10%;"></div></div><div class="bd-count">28대 <span class="bd-pct">(10.5%)</span></div></div><div class="bd-row"><div class="bd-label" title="vCPU 33개 이상">vCPU 33개 이상</div><div class="bd-bar-track"><div class="bd-bar-fill" style="width:6%;"></div></div><div class="bd-count">15대 <span class="bd-pct">(5.6%)</span></div></div>
+</div></div></section><section><div class="section-head" id="vm-thick">
+  <div class="section-icon">🟦</div>
+  <div><h2>Thick 프로비저닝 디스크 목록</h2><div class="desc">디스크 유형이 Thick(Eager/Lazy Zeroed)인 가상 디스크 목록</div></div>
+</div>
+<div class="table-card">
+  <div class="table-toolbar">
+    <input class="search-box" id="thickSearch" placeholder="VM/클러스터 검색..." onkeyup="filterTable('thickSearch','thickTable')">
+    <span class="count" id="thickTable-count">35 행 표시</span>
+  </div>
+  <div class="scroll-y">
+  <table id="thickTable">
+    <thead><tr><th>VM명</th><th>클러스터</th><th>ESXi Host</th><th>디스크</th><th>용량</th><th>데이터스토어</th></tr></thead>
+    <tbody><tr><td>Nice-holdings-DNS</td><td>WD-HCS-cl01</td><td>wd-esxi01.vcf.local</td><td>Hard disk 1</td><td class="num">0 GB</td><td>WD-HCS-cl01-vsan01</td></tr><tr><td>YNH-ESXi01</td><td>Cluster</td><td>fu-02.vks.lab</td><td>Hard disk 3</td><td class="num">0 GB</td><td>vsanDatastore</td></tr><tr><td>YNH-ESXi01</td><td>Cluster</td><td>fu-02.vks.lab</td><td>Hard disk 1</td><td class="num">0 GB</td><td>vsanDatastore</td></tr><tr><td>YNH-ESXi01</td><td>Cluster</td><td>fu-02.vks.lab</td><td>Hard disk 2</td><td class="num">0 GB</td><td>vsanDatastore</td></tr><tr><td>SupervisorControlPlaneVM (6)</td><td>Cluster</td><td>fu-02.vks.lab</td><td>Hard disk 1</td><td class="num">32 GB</td><td>vsanDatastore</td></tr><tr><td>SSK-VKS-Jump-host</td><td>Cluster</td><td>fu-01.vks.lab</td><td>Hard disk 1</td><td class="num">0 GB</td><td>vsanDatastore</td></tr><tr><td>ssk-ubuntu-01-8fllc-b6pwn</td><td>Cluster</td><td>fu-02.vks.lab</td><td>Hard disk 1</td><td class="num">20 GB</td><td>vsanDatastore</td></tr><tr><td>HIDCMIGTEST</td><td>MD-HCS-cl01</td><td>md-esxi02.vcf.local</td><td>Hard disk 1</td><td class="num">100 GB</td><td>MD-HCS-cl01-ds-vsan01</td></tr><tr><td>HIDCMIGTEST</td><td>MD-HCS-cl01</td><td>md-esxi02.vcf.local</td><td>Hard disk 2</td><td class="num">100 GB</td><td>MD-HCS-cl01-ds-vsan01</td></tr><tr><td>yun-test-os</td><td>WD-HCS-cl01</td><td>wd-esxi02.vcf.local</td><td>Hard disk 1</td><td class="num">40 GB</td><td>HCS-TrueNAS-iSCSI</td></tr><tr><td>SupervisorControlPlaneVM (3)</td><td>Cluster</td><td>fu-03.vks.lab</td><td>Hard disk 1</td><td class="num">32 GB</td><td>vsanDatastore</td></tr><tr><td>SupervisorControlPlaneVM (5)</td><td>Cluster</td><td>fu-01.vks.lab</td><td>Hard disk 1</td><td class="num">32 GB</td><td>vsanDatastore</td></tr><tr><td>ssk-ubuntu-02-node-pool-1-hhxbm-gc5mk-4glc4</td><td>Cluster</td><td>fu-02.vks.lab</td><td>Hard disk 1</td><td class="num">20 GB</td><td>vsanDatastore</td></tr><tr><td>SupervisorControlPlaneVM (4)</td><td>Cluster</td><td>fu-03.vks.lab</td><td>Hard disk 1</td><td class="num">32 GB</td><td>vsanDatastore</td></tr><tr><td>YNH-ESXi02</td><td>Cluster</td><td>fu-02.vks.lab</td><td>Hard disk 3</td><td class="num">0 GB</td><td>vsanDatastore</td></tr><tr><td>YNH-ESXi02</td><td>Cluster</td><td>fu-02.vks.lab</td><td>Hard disk 1</td><td class="num">0 GB</td><td>vsanDatastore</td></tr><tr><td>YNH-ESXi02</td><td>Cluster</td><td>fu-02.vks.lab</td><td>Hard disk 2</td><td class="num">0 GB</td><td>vsanDatastore</td></tr><tr><td>YNH-ESXi03</td><td>Cluster</td><td>fu-01.vks.lab</td><td>Hard disk 3</td><td class="num">0 GB</td><td>vsanDatastore</td></tr><tr><td>YNH-ESXi03</td><td>Cluster</td><td>fu-01.vks.lab</td><td>Hard disk 1</td><td class="num">0 GB</td><td>vsanDatastore</td></tr><tr><td>YNH-ESXi03</td><td>Cluster</td><td>fu-01.vks.lab</td><td>Hard disk 2</td><td class="num">0 GB</td><td>vsanDatastore</td></tr><tr><td>mgtest</td><td>MD-HCS-cl01</td><td>md-esxi03.vcf.local</td><td>Hard disk 1</td><td class="num">200 GB</td><td>MD-HCS-cl01-ds-vsan01</td></tr><tr><td>ssk-cluster-01-wnn68-6rqbp</td><td>Cluster</td><td>fu-02.vks.lab</td><td>Hard disk 1</td><td class="num">20 GB</td><td>vsanDatastore</td></tr><tr><td>ssk-ubuntu-02-2dt77-ntbnm</td><td>Cluster</td><td>fu-02.vks.lab</td><td>Hard disk 1</td><td class="num">20 GB</td><td>vsanDatastore</td></tr><tr><td>ssk-cluster-01-node-pool-1-29s7s-xj5x8-sg7jp</td><td>Cluster</td><td>fu-02.vks.lab</td><td>Hard disk 1</td><td class="num">20 GB</td><td>vsanDatastore</td></tr><tr><td>HMGISCSI</td><td>WD-HCS-cl01</td><td>wd-esxi01.vcf.local</td><td>Hard disk 2</td><td class="num">4,096 GB</td><td>WD-HCS-cl01-vsan01</td></tr><tr><td>testsnap</td><td>MD-HCS-cl01</td><td>md-esxi02.vcf.local</td><td>Hard disk 1</td><td class="num">100 GB</td><td>datastore1 (1)</td></tr><tr><td>testsnap</td><td>MD-HCS-cl01</td><td>md-esxi02.vcf.local</td><td>Hard disk 2</td><td class="num">100 GB</td><td>datastore1 (1)</td></tr><tr><td>yu-cs</td><td>WD-HCS-cl01</td><td>wd-esxi03.vcf.local</td><td>Hard disk 1</td><td class="num">0 GB</td><td>WD-HCS-cl01-vsan01</td></tr><tr><td>CGH-Ubuntu</td><td>WD-HCS-cl01</td><td>wd-esxi03.vcf.local</td><td>Hard disk 1</td><td class="num">0 GB</td><td>WD-HCS-cl01-vsan01</td></tr><tr><td>ssk-cluster-01-node-pool-1-29s7s-xj5x8-fvnqr</td><td>Cluster</td><td>fu-03.vks.lab</td><td>Hard disk 1</td><td class="num">20 GB</td><td>vsanDatastore</td></tr><tr><td>sntestdk01</td><td>MD-HCS-cl01</td><td>md-esxi03.vcf.local</td><td>Hard disk 1</td><td class="num">100 GB</td><td>datastore1 (2)</td></tr><tr><td>sntestdk01</td><td>MD-HCS-cl01</td><td>md-esxi03.vcf.local</td><td>Hard disk 2</td><td class="num">100 GB</td><td>datastore1 (2)</td></tr><tr><td>ssk-ubuntu-01-node-pool-1-z8rpj-fzv6b-mplgz</td><td>Cluster</td><td>fu-02.vks.lab</td><td>Hard disk 1</td><td class="num">20 GB</td><td>vsanDatastore</td></tr><tr><td>SupervisorControlPlaneVM (1)</td><td>Cluster</td><td>fu-03.vks.lab</td><td>Hard disk 1</td><td class="num">32 GB</td><td>vsanDatastore</td></tr><tr><td>SupervisorControlPlaneVM (2)</td><td>Cluster</td><td>fu-01.vks.lab</td><td>Hard disk 1</td><td class="num">32 GB</td><td>vsanDatastore</td></tr></tbody>
+  </table>
+  </div>
+</div>
+</section><section><div class="section-head" id="vm-shared">
+  <div class="section-icon">🟧</div>
+  <div><h2>공유 디스크 목록</h2><div class="desc">Shared(멀티라이터 등) 가상 디스크 목록</div></div>
+</div>
+<div class="table-card">
+  <div class="table-toolbar">
+    <input class="search-box" id="sharedSearch" placeholder="VM/클러스터 검색..." onkeyup="filterTable('sharedSearch','sharedTable')">
+    <span class="count" id="sharedTable-count">0 행 표시</span>
+  </div>
+  <div class="scroll-y">
+  <table id="sharedTable">
+    <thead><tr><th>VM명</th><th>클러스터</th><th>ESXi Host</th><th>디스크</th><th>용량</th><th>데이터스토어</th></tr></thead>
+    <tbody><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px;">공유 디스크가 없습니다</td></tr></tbody>
+  </table>
+  </div>
+</div>
+</section><section><div class="section-head" id="vm-perf">
+  <div class="section-icon">📈</div>
+  <div><h2>VM 성능정보 요약</h2><div class="desc">CPU 사용률 / CPU 경합(Ready) / MEM 사용률 / 가상디스크 레이턴시 — 등급별 VM 수량</div></div>
+</div><div class="grid4"><div class="card">
+  <div class="bd-title">CPU 사용률<span class="bd-total">전체 266대</span></div>
+  <div class="stacked-bar">
+    <div class="seg normal" style="width:100%;"></div>
+    <div class="seg warning" style="width:0%;"></div>
+    <div class="seg critical" style="width:0%;"></div>
+  </div>
+  <div class="status-legend-row">
+    <span><span class="dot normal"></span>정상 266대 <span style="color:var(--muted);">(< 70%)</span></span>
+    <span><span class="dot warning"></span>주의 0대 <span style="color:var(--muted);">(70~85%)</span></span>
+    <span><span class="dot critical"></span>위험 0대 <span style="color:var(--muted);">(≥ 85%)</span></span>
+  </div>
+</div><div class="card">
+  <div class="bd-title">CPU 경합(Ready)<span class="bd-total">전체 266대</span></div>
+  <div class="stacked-bar">
+    <div class="seg normal" style="width:100%;"></div>
+    <div class="seg warning" style="width:0%;"></div>
+    <div class="seg critical" style="width:0%;"></div>
+  </div>
+  <div class="status-legend-row">
+    <span><span class="dot normal"></span>정상 266대 <span style="color:var(--muted);">(< 5%)</span></span>
+    <span><span class="dot warning"></span>주의 0대 <span style="color:var(--muted);">(5~10%)</span></span>
+    <span><span class="dot critical"></span>위험 0대 <span style="color:var(--muted);">(≥ 10%)</span></span>
+  </div>
+</div><div class="card">
+  <div class="bd-title">MEM 사용률<span class="bd-total">전체 266대</span></div>
+  <div class="stacked-bar">
+    <div class="seg normal" style="width:88.3%;"></div>
+    <div class="seg warning" style="width:7.1%;"></div>
+    <div class="seg critical" style="width:4.5%;"></div>
+  </div>
+  <div class="status-legend-row">
+    <span><span class="dot normal"></span>정상 235대 <span style="color:var(--muted);">(< 70%)</span></span>
+    <span><span class="dot warning"></span>주의 19대 <span style="color:var(--muted);">(70~85%)</span></span>
+    <span><span class="dot critical"></span>위험 12대 <span style="color:var(--muted);">(≥ 85%)</span></span>
+  </div>
+</div><div class="card">
+  <div class="bd-title">가상디스크 레이턴시<span class="bd-total">전체 266대</span></div>
+  <div class="stacked-bar">
+    <div class="seg normal" style="width:100%;"></div>
+    <div class="seg warning" style="width:0%;"></div>
+    <div class="seg critical" style="width:0%;"></div>
+  </div>
+  <div class="status-legend-row">
+    <span><span class="dot normal"></span>정상 266대 <span style="color:var(--muted);">(< 15ms)</span></span>
+    <span><span class="dot warning"></span>주의 0대 <span style="color:var(--muted);">(15~30ms)</span></span>
+    <span><span class="dot critical"></span>위험 0대 <span style="color:var(--muted);">(≥ 30ms)</span></span>
+  </div>
+</div></div></section><div class="foot">VCF Operations Capacity & Health Report Generator (PowerShell) · 생성 시각 2026-06-22 10:12</div></div>
+<script>function filterTable(inputId, tableId) {
+  var q = document.getElementById(inputId).value.trim().toLowerCase();
+  var rows = document.querySelectorAll('#' + tableId + ' tbody tr');
+  var visible = 0;
+  rows.forEach(function (r) {
+    var hit = r.innerText.toLowerCase().indexOf(q) !== -1;
+    r.style.display = hit ? '' : 'none';
+    if (hit) visible++;
+  });
+  var counter = document.getElementById(tableId + '-count');
+  if (counter) counter.innerText = visible + ' 행 표시';
+}</script>
+</body>
+</html>
