@@ -268,3 +268,7 @@ $propsMap = $VmList | ForEach-Object -Parallel {
   자체서명 인증서 환경에서 별도 인증서 콜백 설정이 필요합니다. **PowerShell 7+(pwsh)
   사용을 권장**합니다.
 - 이 패키지는 실행 환경 제약으로 실제 실행 테스트를 거치지 못했습니다(위 안내 참조).
+
+출력 샘플
+<img width="1241" height="1122" alt="image" src="https://github.com/user-attachments/assets/b2b287be-f25c-49a8-8d06-6aff9dccb29b" />
+
