@@ -1,0 +1,182 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VCF9 호환성 상세 - WD-HCS-cl01</title>
+<style>
+:root {
+  --bg:#f0f2f5; --surface:#fff; --border:#e2e8f0;
+  --primary:#1e3a5f; --primary-lt:#e8edf5;
+  --green:#16a34a; --green-lt:#dcfce7; --green-dk:#14532d;
+  --red:#dc2626;   --red-lt:#fee2e2;   --red-dk:#7f1d1d;
+  --yellow:#d97706; --yellow-lt:#fef3c7; --yellow-dk:#78350f;
+  --gray:#64748b;  --gray-lt:#f8fafc;
+  --radius:12px; --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
+  font-family:'Malgun Gothic','Apple SD Gothic Neo',Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:#1e293b;padding:28px 32px;font-size:14px;line-height:1.6}
+.page-header{margin-bottom:32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.page-header h1{font-size:22px;font-weight:700;color:var(--primary);margin-bottom:4px}
+.page-meta{color:var(--gray);font-size:12px}
+.back-link{font-size:13px;font-weight:600;color:var(--primary);text-decoration:none;background:var(--primary-lt);padding:7px 14px;border-radius:8px;white-space:nowrap}
+.back-link:hover{background:var(--primary);color:#fff}
+
+/* ── KPI 카드 ── */
+.section-title{font-size:15px;font-weight:700;color:var(--primary);margin:28px 0 14px;display:flex;align-items:center;gap:8px}
+.section-title::before{content:'';display:inline-block;width:4px;height:18px;background:var(--primary);border-radius:2px}
+.version-block{display:flex;gap:24px;margin-bottom:12px;width:100%}
+.ver-group{display:flex;flex-direction:column;gap:8px;flex:1;min-width:0}
+.ver-label{font-size:12px;font-weight:700;color:var(--primary);letter-spacing:.05em;text-transform:uppercase;padding:4px 0}
+.card-row{display:flex;gap:12px;width:100%}
+.kpi-card{display:flex;align-items:center;gap:16px;background:var(--surface);border-radius:var(--radius);padding:20px 24px;box-shadow:var(--shadow);flex:1;min-width:0;border-left:5px solid}
+.kpi-card.green{border-color:var(--green)}
+.kpi-card.red{border-color:var(--red)}
+.kpi-icon{font-size:22px;font-weight:900}
+.kpi-card.green .kpi-icon{color:var(--green)}
+.kpi-card.red   .kpi-icon{color:var(--red)}
+.kpi-val{font-size:30px;font-weight:700;line-height:1}
+.kpi-sub{font-size:12px;font-weight:600;color:var(--gray);margin-top:4px}
+.kpi-detail{font-size:17px;font-weight:700;color:#1e293b;margin-top:4px}
+
+/* ── 클러스터 구분 ── */
+.cluster-section{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 24px;margin-bottom:24px}
+.cluster-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.cluster-name{font-size:15px;font-weight:700;color:var(--primary)}
+.cluster-name a{color:var(--primary);text-decoration:none;border-bottom:1.5px dashed var(--primary)}
+.cluster-name a:hover{color:#0f2440;border-bottom-style:solid}
+.cluster-cards{display:flex;gap:16px;width:100%;margin-bottom:18px}
+.cluster-ver-group{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}
+.cluster-ver-label{font-size:11px;font-weight:700;color:var(--gray);letter-spacing:.05em}
+.cluster-card-row{display:flex;gap:8px;width:100%}
+.c-card{display:flex;align-items:center;gap:10px;border-radius:10px;padding:12px 16px;flex:1;min-width:0;border:1.5px solid}
+.c-card.green{background:var(--green-lt);border-color:var(--green)}
+.c-card.red{background:var(--red-lt);border-color:var(--red)}
+.c-icon{font-size:17px;font-weight:900}
+.c-card.green .c-icon{color:var(--green)}
+.c-card.red   .c-icon{color:var(--red)}
+.c-val{font-size:22px;font-weight:700;line-height:1}
+.c-sub{font-size:11px;color:var(--gray);margin-top:2px}
+.c-detail{font-size:15px;font-weight:700;color:#1e293b;margin-top:2px}
+
+/* ── 범례 요약 테이블 ── */
+.summary-table-wrap{overflow-x:auto;margin-bottom:16px}
+.summary-table-wrap table{width:100%;border-collapse:collapse;font-size:13px}
+.summary-table-wrap th{background:var(--primary);color:#fff;padding:8px 12px;font-weight:600;text-align:left}
+.summary-table-wrap td{padding:7px 12px;border-bottom:1px solid var(--border)}
+.summary-table-wrap tr:last-child td{font-weight:700;background:var(--gray-lt)}
+.summary-table-wrap tr:hover td{background:var(--primary-lt)}
+
+/* ── 상세 테이블 ── */
+.cat-section{margin-bottom:20px}
+.cat-title{font-size:13px;font-weight:700;color:var(--primary);margin-bottom:8px;padding:6px 12px;background:var(--primary-lt);border-radius:6px;display:inline-block}
+.table-wrap{overflow-x:auto}
+.table-wrap table{width:100%;border-collapse:collapse;font-size:12px}
+.table-wrap th{background:var(--primary);color:#fff;padding:7px 10px;font-weight:600;white-space:nowrap;text-align:left}
+.table-wrap td{padding:6px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+.table-wrap .note{max-width:340px;font-size:11px;color:var(--gray)}
+.tr-ok:hover td{background:#f0fdf4}
+.tr-miss td{background:#fff5f5}
+.tr-miss:hover td{background:#fee2e2}
+.tr-partial td{background:#fffbeb}
+.tr-partial:hover td{background:#fef3c7}
+
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.02em}
+.badge.ok{background:var(--green-lt);color:var(--green-dk)}
+.badge.miss{background:var(--red-lt);color:var(--red-dk)}
+
+.divider{height:1px;background:var(--border);margin:20px 0}
+.tag-total{display:inline-block;padding:2px 8px;border-radius:4px;background:var(--primary-lt);color:var(--primary);font-size:11px;font-weight:600}
+</style>
+</head>
+<body>
+<div class="page-header">
+  <div>
+    <h1>클러스터: WD-HCS-cl01 - 호환성 상세</h1>
+    <div class="page-meta">생성 시각: 2026-06-30 11:26:27 &nbsp;|&nbsp; vCenter: wd-vc01.vcf.local &nbsp;|&nbsp; 판정 기준: 유사도 50% 이상 = OK</div>
+  </div>
+  <a class="back-link" href="Compatibility_Report.html">← 전체 요약으로 돌아가기</a>
+</div>
+<div class="cat-section"><div class="cat-title">Server <span class="tag-total">4건</span></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Host</th><th>탐지 정보</th><th>소켓</th><th>소켓당 코어(실제)</th><th>소켓당 코어(산정)</th><th>총 코어(산정)</th><th>코어 비고</th><th>HCL 최유사 후보</th><th>유사도</th><th>ESXi 9.0</th><th>ESXi 9.1</th><th>비고</th></tr></thead><tbody>
+<tr class="tr-ok"><td>wd-esxi01.vcf.local</td><td>Dell Inc. PowerEdge R750</td><td>2</td><td>32</td><td>32</td><td><strong>64</strong></td><td class="note"></td><td>Dell PowerEdge R750</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">VCF Supported(Confirm w/Vendor):   /  지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi02.vcf.local</td><td>Dell Inc. PowerEdge R750</td><td>2</td><td>32</td><td>32</td><td><strong>64</strong></td><td class="note"></td><td>Dell PowerEdge R750</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">VCF Supported(Confirm w/Vendor):   /  지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi03.vcf.local</td><td>Dell Inc. PowerEdge R750</td><td>2</td><td>32</td><td>32</td><td><strong>64</strong></td><td class="note"></td><td>Dell PowerEdge R750</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">VCF Supported(Confirm w/Vendor):   /  지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi04.vcf.local</td><td>Dell Inc. PowerEdge R750</td><td>2</td><td>32</td><td>32</td><td><strong>64</strong></td><td class="note"></td><td>Dell PowerEdge R750</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">VCF Supported(Confirm w/Vendor):   /  지원 버전: ESXi 9.0</td></tr>
+</tbody></table></div>
+
+</div>
+<div class="cat-section"><div class="cat-title">CPU <span class="tag-total">4건</span></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Host</th><th>탐지 정보</th><th>HCL 최유사 후보</th><th>유사도</th><th>ESXi 9.0</th><th>ESXi 9.1</th><th>비고</th></tr></thead><tbody>
+<tr class="tr-ok"><td>wd-esxi01.vcf.local</td><td>intel / Intel(R) Xeon(R) Gold 6338 CPU @ 2.00GHz</td><td>Intel Xeon E-2400/Xeon 6300 Series</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">탐지된 SKU &#39;6338&#39; ↔ Series 코드 &#39;6300&#39; 세대 기준 일치 / 지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi02.vcf.local</td><td>intel / Intel(R) Xeon(R) Gold 6338 CPU @ 2.00GHz</td><td>Intel Xeon E-2400/Xeon 6300 Series</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">탐지된 SKU &#39;6338&#39; ↔ Series 코드 &#39;6300&#39; 세대 기준 일치 / 지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi03.vcf.local</td><td>intel / Intel(R) Xeon(R) Gold 6338 CPU @ 2.00GHz</td><td>Intel Xeon E-2400/Xeon 6300 Series</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">탐지된 SKU &#39;6338&#39; ↔ Series 코드 &#39;6300&#39; 세대 기준 일치 / 지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi04.vcf.local</td><td>intel / Intel(R) Xeon(R) Gold 6338 CPU @ 2.00GHz</td><td>Intel Xeon E-2400/Xeon 6300 Series</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">탐지된 SKU &#39;6338&#39; ↔ Series 코드 &#39;6300&#39; 세대 기준 일치 / 지원 버전: ESXi 9.0</td></tr>
+</tbody></table></div>
+
+</div>
+<div class="cat-section"><div class="cat-title">NIC <span class="tag-total">32건</span></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Host</th><th>탐지 정보</th><th>HCL 최유사 후보</th><th>유사도</th><th>ESXi 9.0</th><th>ESXi 9.1</th><th>비고</th></tr></thead><tbody>
+<tr class="tr-ok"><td>wd-esxi01.vcf.local</td><td>vmnic1 / Broadcom Corporation NetXtreme BCM5720 Gigabit Ethernet</td><td>Broadcom NetXtreme BCM5720 Gigabit Ethernet</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi01.vcf.local</td><td>vmnic0 / Broadcom Corporation NetXtreme BCM5720 Gigabit Ethernet</td><td>Broadcom NetXtreme BCM5720 Gigabit Ethernet</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi01.vcf.local</td><td>vmnic6 / Broadcom BCM57414 NetXtreme-E 10Gb/25Gb RDMA Ethernet Controller</td><td>Broadcom BCM57414</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi01.vcf.local</td><td>vmnic2 / Broadcom NetXtreme E-Series Advanced Dual-port 25Gb SFP28 Ethernet OCP 3.0 Adapter</td><td>Broadcom NetXtreme E-Series Quad-port 25Gb SFP28 OCP 3.0 Ethernet Adapter</td><td>93%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi01.vcf.local</td><td>vmnic5 / Broadcom BCM57414 NetXtreme-E 10Gb/25Gb RDMA Ethernet Controller</td><td>Broadcom BCM57414</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi01.vcf.local</td><td>vmnic4 / Broadcom BCM57414 NetXtreme-E 10Gb/25Gb RDMA Ethernet Controller</td><td>Broadcom BCM57414</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi01.vcf.local</td><td>vmnic3 / Broadcom NetXtreme E-Series Advanced Dual-port 25Gb SFP28 Ethernet OCP 3.0 Adapter</td><td>Broadcom NetXtreme E-Series Quad-port 25Gb SFP28 OCP 3.0 Ethernet Adapter</td><td>93%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi01.vcf.local</td><td>vmnic7 / Broadcom BCM57414 NetXtreme-E 10Gb/25Gb RDMA Ethernet Controller</td><td>Broadcom BCM57414</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi02.vcf.local</td><td>vmnic5 / Broadcom BCM57414 NetXtreme-E 10Gb/25Gb RDMA Ethernet Controller</td><td>Broadcom BCM57414</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi02.vcf.local</td><td>vmnic6 / Broadcom BCM57414 NetXtreme-E 10Gb/25Gb RDMA Ethernet Controller</td><td>Broadcom BCM57414</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi02.vcf.local</td><td>vmnic0 / Broadcom Corporation NetXtreme BCM5720 Gigabit Ethernet</td><td>Broadcom NetXtreme BCM5720 Gigabit Ethernet</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi02.vcf.local</td><td>vmnic2 / Broadcom NetXtreme E-Series Advanced Dual-port 25Gb SFP28 Ethernet OCP 3.0 Adapter</td><td>Broadcom NetXtreme E-Series Quad-port 25Gb SFP28 OCP 3.0 Ethernet Adapter</td><td>93%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi02.vcf.local</td><td>vmnic1 / Broadcom Corporation NetXtreme BCM5720 Gigabit Ethernet</td><td>Broadcom NetXtreme BCM5720 Gigabit Ethernet</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi02.vcf.local</td><td>vmnic4 / Broadcom BCM57414 NetXtreme-E 10Gb/25Gb RDMA Ethernet Controller</td><td>Broadcom BCM57414</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi02.vcf.local</td><td>vmnic3 / Broadcom NetXtreme E-Series Advanced Dual-port 25Gb SFP28 Ethernet OCP 3.0 Adapter</td><td>Broadcom NetXtreme E-Series Quad-port 25Gb SFP28 OCP 3.0 Ethernet Adapter</td><td>93%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi02.vcf.local</td><td>vmnic7 / Broadcom BCM57414 NetXtreme-E 10Gb/25Gb RDMA Ethernet Controller</td><td>Broadcom BCM57414</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi03.vcf.local</td><td>vmnic5 / Broadcom BCM57414 NetXtreme-E 10Gb/25Gb RDMA Ethernet Controller</td><td>Broadcom BCM57414</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi03.vcf.local</td><td>vmnic4 / Broadcom BCM57414 NetXtreme-E 10Gb/25Gb RDMA Ethernet Controller</td><td>Broadcom BCM57414</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi03.vcf.local</td><td>vmnic7 / Broadcom BCM57414 NetXtreme-E 10Gb/25Gb RDMA Ethernet Controller</td><td>Broadcom BCM57414</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi03.vcf.local</td><td>vmnic6 / Broadcom BCM57414 NetXtreme-E 10Gb/25Gb RDMA Ethernet Controller</td><td>Broadcom BCM57414</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi03.vcf.local</td><td>vmnic3 / Broadcom NetXtreme E-Series Advanced Dual-port 25Gb SFP28 Ethernet OCP 3.0 Adapter</td><td>Broadcom NetXtreme E-Series Quad-port 25Gb SFP28 OCP 3.0 Ethernet Adapter</td><td>93%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi03.vcf.local</td><td>vmnic0 / Broadcom Corporation NetXtreme BCM5720 Gigabit Ethernet</td><td>Broadcom NetXtreme BCM5720 Gigabit Ethernet</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi03.vcf.local</td><td>vmnic1 / Broadcom Corporation NetXtreme BCM5720 Gigabit Ethernet</td><td>Broadcom NetXtreme BCM5720 Gigabit Ethernet</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi03.vcf.local</td><td>vmnic2 / Broadcom NetXtreme E-Series Advanced Dual-port 25Gb SFP28 Ethernet OCP 3.0 Adapter</td><td>Broadcom NetXtreme E-Series Quad-port 25Gb SFP28 OCP 3.0 Ethernet Adapter</td><td>93%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi04.vcf.local</td><td>vmnic0 / Broadcom Corporation NetXtreme BCM5720 Gigabit Ethernet</td><td>Broadcom NetXtreme BCM5720 Gigabit Ethernet</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi04.vcf.local</td><td>vmnic3 / Broadcom NetXtreme E-Series Advanced Dual-port 25Gb SFP28 Ethernet OCP 3.0 Adapter</td><td>Broadcom NetXtreme E-Series Quad-port 25Gb SFP28 OCP 3.0 Ethernet Adapter</td><td>93%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi04.vcf.local</td><td>vmnic2 / Broadcom NetXtreme E-Series Advanced Dual-port 25Gb SFP28 Ethernet OCP 3.0 Adapter</td><td>Broadcom NetXtreme E-Series Quad-port 25Gb SFP28 OCP 3.0 Ethernet Adapter</td><td>93%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi04.vcf.local</td><td>vmnic1 / Broadcom Corporation NetXtreme BCM5720 Gigabit Ethernet</td><td>Broadcom NetXtreme BCM5720 Gigabit Ethernet</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi04.vcf.local</td><td>vmnic4 / Broadcom BCM57414 NetXtreme-E 10Gb/25Gb RDMA Ethernet Controller</td><td>Broadcom BCM57414</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi04.vcf.local</td><td>vmnic7 / Broadcom BCM57414 NetXtreme-E 10Gb/25Gb RDMA Ethernet Controller</td><td>Broadcom BCM57414</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi04.vcf.local</td><td>vmnic6 / Broadcom BCM57414 NetXtreme-E 10Gb/25Gb RDMA Ethernet Controller</td><td>Broadcom BCM57414</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+<tr class="tr-ok"><td>wd-esxi04.vcf.local</td><td>vmnic5 / Broadcom BCM57414 NetXtreme-E 10Gb/25Gb RDMA Ethernet Controller</td><td>Broadcom BCM57414</td><td>100%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">지원 버전: ESXi 9.0</td></tr>
+</tbody></table></div>
+
+</div>
+<div class="cat-section"><div class="cat-title">Storage_Controller <span class="tag-total">12건</span></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Host</th><th>탐지 정보</th><th>HCL 최유사 후보</th><th>유사도</th><th>ESXi 9.0</th><th>ESXi 9.1</th><th>비고</th></tr></thead><tbody>
+<tr class="tr-ok"><td>wd-esxi01.vcf.local</td><td>vmhba1 / Lewisburg SATA AHCI Controller</td><td>Intel Corporation Lewisburg SATA AHCI Controller</td><td>67%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">ESXi 지원 버전: ESXi 9.0  |  vSAN 후보: Cisco Cisco 12G Modular SAS Pass through Controller (유사도 10%, Hybrid/All Flash / Pass-Through, 9.0:MISMATCH/9.1:MISMATCH)</td></tr>
+<tr class="tr-ok"><td>wd-esxi01.vcf.local</td><td>vmhba0 / PERC H755 Front</td><td>Dell PERC H755 Front PERC</td><td>86%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">ESXi 지원 버전: ESXi 9.0  |  vSAN 후보: Dell HBA355i Front (유사도 20%, Hybrid/All Flash / Pass-Through
+vSAN Secure-wipe capable, 9.0:MISMATCH/9.1:MISMATCH)</td></tr>
+<tr class="tr-ok"><td>wd-esxi01.vcf.local</td><td>vmhba2 / Lewisburg SATA AHCI Controller</td><td>Intel Corporation Lewisburg SATA AHCI Controller</td><td>67%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">ESXi 지원 버전: ESXi 9.0  |  vSAN 후보: Cisco Cisco 12G Modular SAS Pass through Controller (유사도 10%, Hybrid/All Flash / Pass-Through, 9.0:MISMATCH/9.1:MISMATCH)</td></tr>
+<tr class="tr-ok"><td>wd-esxi02.vcf.local</td><td>vmhba0 / PERC H755 Front</td><td>Dell PERC H755 Front PERC</td><td>86%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">ESXi 지원 버전: ESXi 9.0  |  vSAN 후보: Dell HBA355i Front (유사도 20%, Hybrid/All Flash / Pass-Through
+vSAN Secure-wipe capable, 9.0:MISMATCH/9.1:MISMATCH)</td></tr>
+<tr class="tr-ok"><td>wd-esxi02.vcf.local</td><td>vmhba1 / Lewisburg SATA AHCI Controller</td><td>Intel Corporation Lewisburg SATA AHCI Controller</td><td>67%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">ESXi 지원 버전: ESXi 9.0  |  vSAN 후보: Cisco Cisco 12G Modular SAS Pass through Controller (유사도 10%, Hybrid/All Flash / Pass-Through, 9.0:MISMATCH/9.1:MISMATCH)</td></tr>
+<tr class="tr-ok"><td>wd-esxi02.vcf.local</td><td>vmhba2 / Lewisburg SATA AHCI Controller</td><td>Intel Corporation Lewisburg SATA AHCI Controller</td><td>67%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">ESXi 지원 버전: ESXi 9.0  |  vSAN 후보: Cisco Cisco 12G Modular SAS Pass through Controller (유사도 10%, Hybrid/All Flash / Pass-Through, 9.0:MISMATCH/9.1:MISMATCH)</td></tr>
+<tr class="tr-ok"><td>wd-esxi03.vcf.local</td><td>vmhba1 / Lewisburg SATA AHCI Controller</td><td>Intel Corporation Lewisburg SATA AHCI Controller</td><td>67%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">ESXi 지원 버전: ESXi 9.0  |  vSAN 후보: Cisco Cisco 12G Modular SAS Pass through Controller (유사도 10%, Hybrid/All Flash / Pass-Through, 9.0:MISMATCH/9.1:MISMATCH)</td></tr>
+<tr class="tr-ok"><td>wd-esxi03.vcf.local</td><td>vmhba2 / Lewisburg SATA AHCI Controller</td><td>Intel Corporation Lewisburg SATA AHCI Controller</td><td>67%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">ESXi 지원 버전: ESXi 9.0  |  vSAN 후보: Cisco Cisco 12G Modular SAS Pass through Controller (유사도 10%, Hybrid/All Flash / Pass-Through, 9.0:MISMATCH/9.1:MISMATCH)</td></tr>
+<tr class="tr-ok"><td>wd-esxi03.vcf.local</td><td>vmhba0 / PERC H755 Front</td><td>Dell PERC H755 Front PERC</td><td>86%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">ESXi 지원 버전: ESXi 9.0  |  vSAN 후보: Dell HBA355i Front (유사도 20%, Hybrid/All Flash / Pass-Through
+vSAN Secure-wipe capable, 9.0:MISMATCH/9.1:MISMATCH)</td></tr>
+<tr class="tr-ok"><td>wd-esxi04.vcf.local</td><td>vmhba0 / PERC H755 Front</td><td>Dell PERC H755 Front PERC</td><td>86%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">ESXi 지원 버전: ESXi 9.0  |  vSAN 후보: Dell HBA355i Front (유사도 20%, Hybrid/All Flash / Pass-Through
+vSAN Secure-wipe capable, 9.0:MISMATCH/9.1:MISMATCH)</td></tr>
+<tr class="tr-ok"><td>wd-esxi04.vcf.local</td><td>vmhba1 / Lewisburg SATA AHCI Controller</td><td>Intel Corporation Lewisburg SATA AHCI Controller</td><td>67%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">ESXi 지원 버전: ESXi 9.0  |  vSAN 후보: Cisco Cisco 12G Modular SAS Pass through Controller (유사도 10%, Hybrid/All Flash / Pass-Through, 9.0:MISMATCH/9.1:MISMATCH)</td></tr>
+<tr class="tr-ok"><td>wd-esxi04.vcf.local</td><td>vmhba2 / Lewisburg SATA AHCI Controller</td><td>Intel Corporation Lewisburg SATA AHCI Controller</td><td>67%</td><td><span class="badge ok">OK</span></td><td><span class="badge ok">OK</span></td><td class="note">ESXi 지원 버전: ESXi 9.0  |  vSAN 후보: Cisco Cisco 12G Modular SAS Pass through Controller (유사도 10%, Hybrid/All Flash / Pass-Through, 9.0:MISMATCH/9.1:MISMATCH)</td></tr>
+</tbody></table></div>
+
+</div>
+</body></html>
+
