@@ -169,3 +169,13 @@ Save-Module -Name VMware.PowerCLI -Path C:\Temp_Modules
 - 호환성 판정은 **모델명/시리즈 기반 best-effort 유사도 매칭**이며, VMware의 정식 Compatibility Guide 조회를 완전히 대체하지는 않습니다.
 - CPU 세대 판정 시 일부 시리즈(예: Intel Xeon Gold 6300번대처럼 Cooper-Lake-SP와 Ice-Lake-SP가 같은 코드를 공유하는 경우)는 VMware HCL 데이터 자체의 모호성으로 인해 정확한 마이크로아키텍처까지는 구분하지 못할 수 있습니다.
 - 본 스크립트는 읽기 전용 조회만 수행하며, vCenter/ESXi 설정을 변경하지 않습니다.
+
+## 아웃풋(HTML)
+전체 요약 페이지
+<img width="1764" height="862" alt="image" src="https://github.com/user-attachments/assets/f33f95cc-6969-4d0f-b9d7-324005fa3344" />
+
+각 클러스터별 페이지
+<img width="1756" height="891" alt="image" src="https://github.com/user-attachments/assets/fb8470d2-80da-4b85-a3c2-8ec9dce103c9" />
+<img width="1749" height="470" alt="image" src="https://github.com/user-attachments/assets/d1d250ce-e889-4bf1-8805-7e3248a0f2c2" />
+
+
