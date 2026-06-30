@@ -1,0 +1,176 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VCF9 하드웨어 호환성 검사 결과</title>
+<style>
+:root {
+  --bg:#f0f2f5; --surface:#fff; --border:#e2e8f0;
+  --primary:#1e3a5f; --primary-lt:#e8edf5;
+  --green:#16a34a; --green-lt:#dcfce7; --green-dk:#14532d;
+  --red:#dc2626;   --red-lt:#fee2e2;   --red-dk:#7f1d1d;
+  --yellow:#d97706; --yellow-lt:#fef3c7; --yellow-dk:#78350f;
+  --gray:#64748b;  --gray-lt:#f8fafc;
+  --radius:12px; --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
+  font-family:'Malgun Gothic','Apple SD Gothic Neo',Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:#1e293b;padding:28px 32px;font-size:14px;line-height:1.6}
+.page-header{margin-bottom:32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.page-header h1{font-size:22px;font-weight:700;color:var(--primary);margin-bottom:4px}
+.page-meta{color:var(--gray);font-size:12px}
+.back-link{font-size:13px;font-weight:600;color:var(--primary);text-decoration:none;background:var(--primary-lt);padding:7px 14px;border-radius:8px;white-space:nowrap}
+.back-link:hover{background:var(--primary);color:#fff}
+
+/* ── KPI 카드 ── */
+.section-title{font-size:15px;font-weight:700;color:var(--primary);margin:28px 0 14px;display:flex;align-items:center;gap:8px}
+.section-title::before{content:'';display:inline-block;width:4px;height:18px;background:var(--primary);border-radius:2px}
+.version-block{display:flex;gap:24px;margin-bottom:12px;width:100%}
+.ver-group{display:flex;flex-direction:column;gap:8px;flex:1;min-width:0}
+.ver-label{font-size:12px;font-weight:700;color:var(--primary);letter-spacing:.05em;text-transform:uppercase;padding:4px 0}
+.card-row{display:flex;gap:12px;width:100%}
+.kpi-card{display:flex;align-items:center;gap:16px;background:var(--surface);border-radius:var(--radius);padding:20px 24px;box-shadow:var(--shadow);flex:1;min-width:0;border-left:5px solid}
+.kpi-card.green{border-color:var(--green)}
+.kpi-card.red{border-color:var(--red)}
+.kpi-icon{font-size:22px;font-weight:900}
+.kpi-card.green .kpi-icon{color:var(--green)}
+.kpi-card.red   .kpi-icon{color:var(--red)}
+.kpi-val{font-size:30px;font-weight:700;line-height:1}
+.kpi-sub{font-size:12px;font-weight:600;color:var(--gray);margin-top:4px}
+.kpi-detail{font-size:17px;font-weight:700;color:#1e293b;margin-top:4px}
+
+/* ── 클러스터 구분 ── */
+.cluster-section{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 24px;margin-bottom:24px}
+.cluster-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.cluster-name{font-size:15px;font-weight:700;color:var(--primary)}
+.cluster-name a{color:var(--primary);text-decoration:none;border-bottom:1.5px dashed var(--primary)}
+.cluster-name a:hover{color:#0f2440;border-bottom-style:solid}
+.cluster-cards{display:flex;gap:16px;width:100%;margin-bottom:18px}
+.cluster-ver-group{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}
+.cluster-ver-label{font-size:11px;font-weight:700;color:var(--gray);letter-spacing:.05em}
+.cluster-card-row{display:flex;gap:8px;width:100%}
+.c-card{display:flex;align-items:center;gap:10px;border-radius:10px;padding:12px 16px;flex:1;min-width:0;border:1.5px solid}
+.c-card.green{background:var(--green-lt);border-color:var(--green)}
+.c-card.red{background:var(--red-lt);border-color:var(--red)}
+.c-icon{font-size:17px;font-weight:900}
+.c-card.green .c-icon{color:var(--green)}
+.c-card.red   .c-icon{color:var(--red)}
+.c-val{font-size:22px;font-weight:700;line-height:1}
+.c-sub{font-size:11px;color:var(--gray);margin-top:2px}
+.c-detail{font-size:15px;font-weight:700;color:#1e293b;margin-top:2px}
+
+/* ── 범례 요약 테이블 ── */
+.summary-table-wrap{overflow-x:auto;margin-bottom:16px}
+.summary-table-wrap table{width:100%;border-collapse:collapse;font-size:13px}
+.summary-table-wrap th{background:var(--primary);color:#fff;padding:8px 12px;font-weight:600;text-align:left}
+.summary-table-wrap td{padding:7px 12px;border-bottom:1px solid var(--border)}
+.summary-table-wrap tr:last-child td{font-weight:700;background:var(--gray-lt)}
+.summary-table-wrap tr:hover td{background:var(--primary-lt)}
+
+/* ── 상세 테이블 ── */
+.cat-section{margin-bottom:20px}
+.cat-title{font-size:13px;font-weight:700;color:var(--primary);margin-bottom:8px;padding:6px 12px;background:var(--primary-lt);border-radius:6px;display:inline-block}
+.table-wrap{overflow-x:auto}
+.table-wrap table{width:100%;border-collapse:collapse;font-size:12px}
+.table-wrap th{background:var(--primary);color:#fff;padding:7px 10px;font-weight:600;white-space:nowrap;text-align:left}
+.table-wrap td{padding:6px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+.table-wrap .note{max-width:340px;font-size:11px;color:var(--gray)}
+.tr-ok:hover td{background:#f0fdf4}
+.tr-miss td{background:#fff5f5}
+.tr-miss:hover td{background:#fee2e2}
+.tr-partial td{background:#fffbeb}
+.tr-partial:hover td{background:#fef3c7}
+
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.02em}
+.badge.ok{background:var(--green-lt);color:var(--green-dk)}
+.badge.miss{background:var(--red-lt);color:var(--red-dk)}
+
+.divider{height:1px;background:var(--border);margin:20px 0}
+.tag-total{display:inline-block;padding:2px 8px;border-radius:4px;background:var(--primary-lt);color:var(--primary);font-size:11px;font-weight:600}
+</style>
+</head>
+<body>
+<div class="page-header">
+  <h1>VCF9 하드웨어 호환성 검사 결과</h1>
+  <div class="page-meta">생성 시각: 2026-06-30 11:26:27 &nbsp;|&nbsp; vCenter: wd-vc01.vcf.local &nbsp;|&nbsp; 판정 기준: 유사도 50% 이상 = OK</div>
+</div>
+
+<div class="section-title">전체 호스트 호환성 현황</div>
+<div class="version-block">
+<div class="ver-group">
+  <div class="ver-label">ESXi 9.0</div>
+  <div class="card-row">
+    <div class="kpi-card green">
+      <div class="kpi-icon">✓</div>
+      <div class="kpi-body">
+        <div class="kpi-val">4</div>
+        <div class="kpi-sub">100% 일치 호스트</div>
+        <div class="kpi-detail">물리 코어 합계 256 코어</div>
+      </div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-icon">✗</div>
+      <div class="kpi-body">
+        <div class="kpi-val">0</div>
+        <div class="kpi-sub">불일치 호스트</div>
+        <div class="kpi-detail">물리 코어 합계 0 코어</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="ver-group">
+  <div class="ver-label">ESXi 9.1</div>
+  <div class="card-row">
+    <div class="kpi-card green">
+      <div class="kpi-icon">✓</div>
+      <div class="kpi-body">
+        <div class="kpi-val">4</div>
+        <div class="kpi-sub">100% 일치 호스트</div>
+        <div class="kpi-detail">물리 코어 합계 256 코어</div>
+      </div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-icon">✗</div>
+      <div class="kpi-body">
+        <div class="kpi-val">0</div>
+        <div class="kpi-sub">불일치 호스트</div>
+        <div class="kpi-detail">물리 코어 합계 0 코어</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="section-title">클러스터별 호환성 현황</div>
+<div class="cluster-section">
+<div class="cluster-header"><span class="cluster-name">📦 클러스터: <a href="Compatibility_Cluster_WD-HCS-cl01.html">WD-HCS-cl01</a></span><span class="tag-total">총 4 호스트</span></div>
+<div class="cluster-cards">
+<div class="cluster-ver-group">
+  <div class="cluster-ver-label">ESXi 9.0</div>
+  <div class="cluster-card-row">
+    <div class="c-card green"><div class="c-icon">✓</div><div><div class="c-val">4</div><div class="c-sub">100% 일치</div><div class="c-detail">256 코어</div></div></div>
+    <div class="c-card red"><div class="c-icon">✗</div><div><div class="c-val">0</div><div class="c-sub">불일치</div><div class="c-detail">0 코어</div></div></div>
+  </div>
+  
+</div>
+<div class="cluster-ver-group">
+  <div class="cluster-ver-label">ESXi 9.1</div>
+  <div class="cluster-card-row">
+    <div class="c-card green"><div class="c-icon">✓</div><div><div class="c-val">4</div><div class="c-sub">100% 일치</div><div class="c-detail">256 코어</div></div></div>
+    <div class="c-card red"><div class="c-icon">✗</div><div><div class="c-val">0</div><div class="c-sub">불일치</div><div class="c-detail">0 코어</div></div></div>
+  </div>
+  
+</div>
+</div></div>
+<div class="section-title">Part별 항목 수 요약</div>
+<div class="summary-table-wrap"><table>
+<thead><tr><th>분류(Part)</th><th>총 항목</th><th>9.0 일치</th><th>9.0 불일치</th><th>9.0 일치율</th><th>9.1 일치</th><th>9.1 불일치</th><th>9.1 일치율</th></tr></thead><tbody>
+<tr><td>Server</td><td>4</td><td>4</td><td>0</td><td>100%</td><td>4</td><td>0</td><td>100%</td></tr>
+<tr><td>CPU</td><td>4</td><td>4</td><td>0</td><td>100%</td><td>4</td><td>0</td><td>100%</td></tr>
+<tr><td>NIC</td><td>32</td><td>32</td><td>0</td><td>100%</td><td>32</td><td>0</td><td>100%</td></tr>
+<tr><td>Storage_Controller</td><td>12</td><td>12</td><td>0</td><td>100%</td><td>12</td><td>0</td><td>100%</td></tr>
+<tr><td>전체</td><td>52</td><td>52</td><td>0</td><td>100%</td><td>52</td><td>0</td><td>100%</td></tr>
+</tbody></table></div>
+</body></html>
+
