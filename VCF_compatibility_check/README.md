@@ -141,23 +141,27 @@ HCL CSV를 다른 위치에 두고 싶다면 `-HCLPath` 옵션으로 경로를 �
 
 인터넷이 안 되는 서버에서 실행하면 PowerCLI 자동 설치가 실패하고 안내 메시지가 출력됩니다.
 
+https://techdocs.broadcom.com/us/en/vmware-cis/vcf/power-cli/latest/powercli/installing-vmware-vsphere-powercli/install-powercli-offline.html
+
 Verify that your system is compatible with PowerCLI. See the Compatibility Matrix .
 Verify that PowerShell is available on your system. For Linux and macOS, you must install PowerShell. See how to install PowerShell on different platforms.
 For Windows, if you have PowerCLI 6.5 R1 or earlier, uninstall it.
 Download the PowerCLI ZIP file from the PowerCLI home page and transfer the ZIP file to your local machine.
-You might need to install PowerCLI on a local machine with no Internet connectivity due to security reasons and deployment restrictions. If you are using such an environment, you can download the PowerCLI ZIP file on a computer with Internet access, transfer the ZIP file to your local machine and install PowerCLI.
+
 Open PowerShell on your local machine.
 To view the folder paths to which you can extract the PowerCLI ZIP file, run the command:
-$env:PSModulePath
+  $env:PSModulePath
+
 Extract the contents of the PowerCLI ZIP file to one of the listed folders.
+
 For Windows, run the command to unblock the copied files.
-Get-ChildItem -Path 'folder_path' -Recurse | Unblock-File
+  Get-ChildItem -Path 'folder_path' -Recurse | Unblock-File
+
 Replace folder_path with the path to the folder where you extracted the contents of the ZIP file.
 Verify that the VMware PowerCLI modules have installed successfully.
-Get-Module VMware* -ListAvailable
-You can now run PowerCLI on your local machine.
-Enable execution of local scripts. See Allow Execution of Local Scripts.
----
+  Get-Module VMware* -ListAvailable
+
+
 
 ## 8. 자주 발생하는 문제
 
