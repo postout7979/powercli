@@ -137,31 +137,54 @@ HCL CSV를 다른 위치에 두고 싶다면 `-HCLPath` 옵션으로 경로를 �
 
 ---
 
+
 ## 7. 폐쇄망(오프라인) 환경 안내
 
 인터넷이 안 되는 서버에서 실행하면 PowerCLI 자동 설치가 실패하고 안내 메시지가 출력됩니다.
+공식 가이드: [Install PowerCLI Offline (Broadcom TechDocs)](https://techdocs.broadcom.com/us/en/vmware-cis/vcf/power-cli/latest/powercli/installing-vmware-vsphere-powercli/install-powercli-offline.html)
 
-https://techdocs.broadcom.com/us/en/vmware-cis/vcf/power-cli/latest/powercli/installing-vmware-vsphere-powercli/install-powercli-offline.html
+**사전 확인 사항**
+- [PowerCLI 호환성 매트릭스](https://docs.vmware.com/en/VMware-PowerCLI/latest/rn/compatibility-matrix-for-vmware-powercli/index.html)에서 OS/PowerShell 버전 지원 여부를 먼저 확인하세요.
+- PowerCLI 6.5 R1 이하 구버전이 설치되어 있다면 먼저 제거해야 합니다.
 
-Verify that your system is compatible with PowerCLI. See the Compatibility Matrix .
-Verify that PowerShell is available on your system. For Linux and macOS, you must install PowerShell. See how to install PowerShell on different platforms.
-For Windows, if you have PowerCLI 6.5 R1 or earlier, uninstall it.
-Download the PowerCLI ZIP file from the PowerCLI home page and transfer the ZIP file to your local machine.
+**오프라인 설치 절차**
 
-Open PowerShell on your local machine.
-To view the folder paths to which you can extract the PowerCLI ZIP file, run the command:
-  $env:PSModulePath
+**[1단계] 인터넷이 되는 PC에서 ZIP 파일 다운로드**
 
-Extract the contents of the PowerCLI ZIP file to one of the listed folders.
+[Broadcom Developer Portal - PowerCLI 다운로드 페이지](https://developer.broadcom.com/tools/vmware-powercli/latest/)에서 PowerCLI ZIP 파일을 내려받아 폐쇄망 서버로 전송합니다.
 
-For Windows, run the command to unblock the copied files.
-  Get-ChildItem -Path 'folder_path' -Recurse | Unblock-File
+**[2단계] 폐쇄망 서버에서 설치 위치 확인**
 
-Replace folder_path with the path to the folder where you extracted the contents of the ZIP file.
-Verify that the VMware PowerCLI modules have installed successfully.
-  Get-Module VMware* -ListAvailable
+PowerShell에서 모듈 설치 가능한 폴더 경로를 확인합니다:
 
+```powershell
+$env:PSModulePath
+```
 
+출력된 경로 중 하나에 ZIP 파일의 내용을 압축 해제합니다.
+(예: `C:\Program Files\WindowsPowerShell\Modules`)
+
+**[3단계] 복사된 파일 차단 해제 (Windows 필수)**
+
+```powershell
+Get-ChildItem -Path 'C:\Program Files\WindowsPowerShell\Modules\VMware*' -Recurse | Unblock-File
+```
+
+**[4단계] 설치 확인**
+
+```powershell
+Get-Module VMware* -ListAvailable
+```
+
+VMware 관련 모듈 목록이 출력되면 설치 완료입니다.
+
+**[5단계] 로컬 스크립트 실행 허용 (필요 시)**
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+---
 
 ## 8. 자주 발생하는 문제
 
