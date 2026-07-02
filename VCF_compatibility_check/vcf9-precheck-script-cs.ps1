@@ -1,4 +1,4 @@
-﻿# ====================================================
+# ====================================================
 # 0. Initial Environment Setup & PowerCLI Auto-Installation
 # ====================================================
 # 사용 예시: .\vcf9-precheck-script-cs.ps1 -HCLPath "C:\HCL"
@@ -195,21 +195,40 @@ $HostReport = @(); $HWReport = @()
 $TotalHosts = @($VMHosts).Count
 $Count = 0
 
+# 호스트 CPU Ready는 Get-Stat으로 별도 수집 (Realtime 20초 샘플 기준)
+# cpu.ready.summation 단위: ms / 20초 인터벌당 → %Ready = (Value / 20000) × 100
+$HostReadyLookup = @{}
+try {
+    $HostReadyStats = Get-Stat -Entity $VMHosts -Stat "cpu.ready.summation" -MaxSamples 1 -Realtime -WarningAction SilentlyContinue -ErrorAction SilentlyContinue
+    foreach ($S in $HostReadyStats) {
+        # 호스트 레벨의 cpu.ready는 전체 pCPU 합산값 → NumCpu로 나눠 평균 %Ready 산출
+        $NumCpu = ($VMHosts | Where-Object { $_.Id -eq $S.Entity.Id } | Select-Object -First 1).NumCpu
+        if (-not $NumCpu -or $NumCpu -eq 0) { $NumCpu = 1 }
+        $HostReadyLookup[$S.Entity.Id] = [Math]::Round(($S.Value / ($NumCpu * 20000)) * 100, 2)
+    }
+} catch {}
+
 foreach ($HostObj in $VMHosts) {
     $Count++
     Write-Progress -Activity "Processing Hosts" -Status "Host: $($HostObj.Name)" -PercentComplete (($Count / $TotalHosts) * 100)
 
+    $CpuUsageMhz = $HostObj.CpuUsageMhz
     $CpuUsagePct = if ($HostObj.CpuTotalMhz -gt 0) { [Math]::Round(($HostObj.CpuUsageMhz / $HostObj.CpuTotalMhz * 100), 2) } else { 0 }
+    $MemUsageGB  = [Math]::Round($HostObj.MemoryUsageGB, 2)
     $MemUsagePct = if ($HostObj.MemoryTotalGB -gt 0) { [Math]::Round(($HostObj.MemoryUsageGB / $HostObj.MemoryTotalGB * 100), 2) } else { 0 }
+    $HostReadyPct = if ($HostReadyLookup.ContainsKey($HostObj.Id)) { $HostReadyLookup[$HostObj.Id] } else { "N/A" }
 
     $HostReport += [PSCustomObject]@{
-        "HostName"      = $HostObj.Name
-        "Cluster"       = $HostObj.Parent.Name
-        "State"         = $HostObj.ConnectionState
-        "ESXi_Version"  = $HostObj.Version
-        "BuildNumber"   = $HostObj.Build
-        "CPU_Usage_Pct" = $CpuUsagePct
-        "Mem_Usage_Pct" = $MemUsagePct
+        "HostName"       = $HostObj.Name
+        "Cluster"        = $HostObj.Parent.Name
+        "State"          = $HostObj.ConnectionState
+        "ESXi_Version"   = $HostObj.Version
+        "BuildNumber"    = $HostObj.Build
+        "CPU_Usage_MHz"  = $CpuUsageMhz
+        "CPU_Usage_Pct"  = "$CpuUsagePct %"
+        "CPU_Ready_Pct"  = if ($HostReadyPct -ne "N/A") { "$HostReadyPct %" } else { "N/A" }
+        "Mem_Usage_GB"   = $MemUsageGB
+        "Mem_Usage_Pct"  = "$MemUsagePct %"
     }
 
     if ($HostObj.ConnectionState -eq "Connected") {
@@ -232,6 +251,12 @@ foreach ($HostObj in $VMHosts) {
             "CPU_Sockets"        = $CpuInfo.NumCpuPackages
             "CPU_CoresPerSocket" = if ($CpuInfo.NumCpuPackages -gt 0) { $CpuInfo.NumCpuCores / $CpuInfo.NumCpuPackages } else { 0 }
             "Total_Cores"        = $CpuInfo.NumCpuCores
+            "CPU_Usage_MHz"      = $CpuUsageMhz
+            "CPU_Usage_Pct"      = "$CpuUsagePct %"
+            "CPU_Ready_Pct"      = if ($HostReadyPct -ne "N/A") { "$HostReadyPct %" } else { "N/A" }
+            "Mem_Total_GB"       = [Math]::Round($HostObj.ExtensionData.Hardware.MemorySize / 1GB, 2)
+            "Mem_Usage_GB"       = $MemUsageGB
+            "Mem_Usage_Pct"      = "$MemUsagePct %"
             "Memory_GB"          = [Math]::Round($HostObj.ExtensionData.Hardware.MemorySize / 1GB, 2)
             "BIOS_Version"       = $BiosInfo.BiosVersion
             "ESXi_FullVersion"   = $HostObj.ExtensionData.Config.Product.FullName
@@ -263,10 +288,13 @@ foreach ($VM in $AllVMs) {
     if ($VM.PowerState -eq "PoweredOn") {
         $VMStats = $StatsLookup[$VM.Id]
         if ($VMStats) {
-            $ReadyMs = ($VMStats | Where-Object {$_.MetricId -eq "cpu.ready.summation"} | Measure-Object Value -Sum).Sum
+            $ReadyMs  = ($VMStats | Where-Object {$_.MetricId -eq "cpu.ready.summation"}  | Measure-Object Value -Sum).Sum
             $CostopMs = ($VMStats | Where-Object {$_.MetricId -eq "cpu.costop.summation"} | Measure-Object Value -Sum).Sum
-            $ReadyPct = if ($ReadyMs) { [Math]::Round(($ReadyMs / 20000) * 100, 2) } else { 0 }
-            $CostopPct = if ($CostopMs) { [Math]::Round(($CostopMs / 20000) * 100, 2) } else { 0 }
+            # 정확한 공식: (summation_ms / (NumCPU × 20000ms)) × 100
+            # cpu.ready.summation은 전체 vCPU 합산값이므로 NumCPU로 나눠 평균 %Ready를 산출
+            $NumCpuDivisor = if ($VM.NumCpu -gt 0) { $VM.NumCpu } else { 1 }
+            $ReadyPct  = if ($ReadyMs)  { [Math]::Round(($ReadyMs  / ($NumCpuDivisor * 20000)) * 100, 2) } else { 0 }
+            $CostopPct = if ($CostopMs) { [Math]::Round(($CostopMs / ($NumCpuDivisor * 20000)) * 100, 2) } else { 0 }
         }
 
         $QStats = $VM.ExtensionData.Summary.QuickStats
