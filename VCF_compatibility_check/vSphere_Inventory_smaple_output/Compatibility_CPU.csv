@@ -1,5 +1,0 @@
-﻿"Cluster","HostName","Category","Detected","HCL_Match","Match_Score(%)","ESXi_9.0","ESXi_9.1","Note"
-"WD-HCS-cl01","wd-esxi03.vcf.local","CPU","intel / Intel(R) Xeon(R) Gold 6338 CPU @ 2.00GHz","Intel Xeon E-2400/Xeon 6300 Series","100","OK","OK","탐지된 SKU '6338' ↔ Series 코드 '6300' 세대 기준 일치 / 지원 버전: ESXi 9.0"
-"WD-HCS-cl01","wd-esxi01.vcf.local","CPU","intel / Intel(R) Xeon(R) Gold 6338 CPU @ 2.00GHz","Intel Xeon E-2400/Xeon 6300 Series","100","OK","OK","탐지된 SKU '6338' ↔ Series 코드 '6300' 세대 기준 일치 / 지원 버전: ESXi 9.0"
-"WD-HCS-cl01","wd-esxi04.vcf.local","CPU","intel / Intel(R) Xeon(R) Gold 6338 CPU @ 2.00GHz","Intel Xeon E-2400/Xeon 6300 Series","100","OK","OK","탐지된 SKU '6338' ↔ Series 코드 '6300' 세대 기준 일치 / 지원 버전: ESXi 9.0"
-"WD-HCS-cl01","wd-esxi02.vcf.local","CPU","intel / Intel(R) Xeon(R) Gold 6338 CPU @ 2.00GHz","Intel Xeon E-2400/Xeon 6300 Series","100","OK","OK","탐지된 SKU '6338' ↔ Series 코드 '6300' 세대 기준 일치 / 지원 버전: ESXi 9.0"
