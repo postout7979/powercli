@@ -113,21 +113,44 @@ function Format-ReleaseText {
 }
 
 function Get-Tokens {
-    param([string]$Text)
+    param([string]$Text, [string[]]$NoiseWords = @())
     if ([string]::IsNullOrWhiteSpace($Text)) { return @() }
-    return @(($Text.ToLower() -split '[^a-z0-9]+') | Where-Object { $_.Length -ge 2 })
+    $Base = @(($Text.ToLower() -split '[^a-z0-9]+') | Where-Object { $_.Length -ge 2 })
+    if ($NoiseWords.Count -gt 0) { return @($Base | Where-Object { $_ -notin $NoiseWords }) }
+    return $Base
 }
 
 function Get-TokenWeight {
     param([string]$Token)
-    if ($Token -match '[0-9]') { return 3 } else { return 1 }
+    # 숫자+문자 혼합 토큰(모델번호): 가중치 5 / 숫자만: 3 / 일반 단어: 1
+    if ($Token -match '^[0-9]+[a-z]+|^[a-z]+[0-9]') { return 5 }
+    if ($Token -match '^[0-9]+$') { return 3 }
+    return 1
 }
 
+# IO 장치(NIC·Storage)용 노이즈 단어
+$Script:IONoise = [System.Collections.Generic.HashSet[string]]@(
+    'adapter','controller','device','card','module','port','interface',
+    'gigabit','ethernet','fiber','fibre','channel','sata','pcie','pci',
+    'nvme','sas','ssd','hdd','series','express','gen',
+    'for','and','with','the','by','of'
+)
+
+# 서버 매칭용 노이즈 단어 (제조사·수식어 제거, 모델번호 집중)
+$Script:ServerNoise = [System.Collections.Generic.HashSet[string]]@(
+    'inc','llc','ltd','corp','corporation','technologies','technology',
+    'systems','system','group','server','rack','blade','tower',
+    'vsan','ready','node','generation','edition','enterprise',
+    'the','and','with','for','of','by'
+)
+
 function Get-SimilarityScore {
-    param([string]$Detected, [string]$HCLValue)
-    $hTokens = @(Get-Tokens $HCLValue)
+    param([string]$Detected, [string]$HCLValue, [string[]]$NoiseWords = @())
+
+    $hTokens = @(Get-Tokens -Text $HCLValue -NoiseWords $NoiseWords)
     if ($hTokens.Count -eq 0) { return 0 }
-    $dTokens = @(Get-Tokens $Detected)
+    $dTokens = @(Get-Tokens -Text $Detected  -NoiseWords $NoiseWords)
+
     $TotalWeight = 0; $MatchWeight = 0
     foreach ($t in $hTokens) {
         $w = Get-TokenWeight -Token $t
@@ -135,40 +158,94 @@ function Get-SimilarityScore {
         if ($dTokens -contains $t) { $MatchWeight += $w }
     }
     if ($TotalWeight -eq 0) { return 0 }
-    return [Math]::Round(($MatchWeight / $TotalWeight) * 100, 0)
+    $Score = [Math]::Round(($MatchWeight / $TotalWeight) * 100, 0)
+
+    # ── 숫자 토큰 충돌 페널티 ──
+    # HCL 측 숫자 토큰 집합 vs 탐지값 측 숫자 토큰 집합을 비교해서
+    # 서로 다른 번호(예: S1 vs S2, HBA330 vs HBA355)가 존재하면 점수를 절반으로 낮춤
+    $hNum = @($hTokens | Where-Object { $_ -match '[0-9]' })
+    $dNum = @($dTokens | Where-Object { $_ -match '[0-9]' })
+    if ($hNum.Count -gt 0 -and $dNum.Count -gt 0) {
+        $commonNum = @($hNum | Where-Object { $dNum -contains $_ })
+        if ($commonNum.Count -eq 0) {
+            # 숫자 토큰이 양쪽 모두 있는데 하나도 겹치지 않음 → 완전히 다른 모델번호
+            $Score = [Math]::Min($Score, [Math]::Round($Score * 0.5, 0))
+        }
+    }
+    return $Score
 }
 
 function Find-BestHCLMatch {
-    param([array]$Table, [hashtable]$Index, [string]$Detected, [string[]]$Fields)
+    param([array]$Table, [hashtable]$Index, [string]$Detected,
+          [string[]]$Fields, [string[]]$NoiseWords = @())
     if (-not $Table -or @($Table).Count -eq 0) { return $null }
-    $DetTokens = @(Get-Tokens $Detected)
+
+    # 탐지값 토큰: 노이즈 제거 후 숫자 포함 토큰 우선
+    $AllDetTok = @(Get-Tokens -Text $Detected -NoiseWords $NoiseWords)
+    $NumTok    = @($AllDetTok | Where-Object { $_ -match '[0-9]' } | Sort-Object Length -Descending)
+    $WordTok   = @($AllDetTok | Where-Object { $_ -notmatch '[0-9]' } | Sort-Object Length -Descending)
+
+    # 인덱스에서 후보 수집: 숫자 토큰 여러 개로 교집합 → 후보 정밀 좁히기
     $Candidates = $null
-    if ($Index) {
-        foreach ($t in ($DetTokens | Sort-Object { -([int]($_ -match '[0-9]')) })) {
-            if ($Index.ContainsKey($t)) { $Candidates = $Index[$t]; break }
+    if ($Index -and $Index.Count -gt 0) {
+        $CandSets = [System.Collections.Generic.List[object]]::new()
+        foreach ($t in ($NumTok + $WordTok)) {
+            if ($Index.ContainsKey($t)) {
+                $CandSets.Add($Index[$t])
+                if ($CandSets.Count -ge 3) { break }  # 최대 3개 키까지 수집
+            }
         }
-        if (-not $Candidates) { $Candidates = $Table }
-    } else { $Candidates = $Table }
+        if ($CandSets.Count -gt 0) {
+            # 첫 번째 후보 집합에서 다른 키에도 등장하는 행을 우선 배치
+            $First = [System.Collections.Generic.HashSet[object]]::new($CandSets[0])
+            if ($CandSets.Count -gt 1) {
+                $Intersect = [System.Collections.Generic.List[object]]::new()
+                foreach ($Row in $First) {
+                    $InAll = $true
+                    for ($i = 1; $i -lt $CandSets.Count; $i++) {
+                        if (-not $CandSets[$i].Contains($Row)) { $InAll = $false; break }
+                    }
+                    if ($InAll) { $Intersect.Add($Row) }
+                }
+                $Candidates = if ($Intersect.Count -gt 0) { $Intersect } else { $First }
+            } else {
+                $Candidates = $First
+            }
+        }
+    }
+
+    # 후보 대상 최고 유사도 탐색
     $Best = $null; $BestScore = -1
-    foreach ($Row in $Candidates) {
+    $SearchSet = if ($Candidates) { $Candidates } else { $Table }
+    foreach ($Row in $SearchSet) {
         $HCLText = ($Fields | ForEach-Object { $Row.$_ }) -join ' '
-        $Score = Get-SimilarityScore -Detected $Detected -HCLValue $HCLText
+        $Score = Get-SimilarityScore -Detected $Detected -HCLValue $HCLText -NoiseWords $NoiseWords
         if ($Score -gt $BestScore) { $BestScore = $Score; $Best = $Row }
     }
+
+    # 후보 집합에서 못 찾으면 전체 테이블 폴백 (인덱스 미스 커버)
+    if ($Candidates -and ($null -eq $Best -or $BestScore -lt $MatchThreshold)) {
+        foreach ($Row in $Table) {
+            $HCLText = ($Fields | ForEach-Object { $Row.$_ }) -join ' '
+            $Score = Get-SimilarityScore -Detected $Detected -HCLValue $HCLText -NoiseWords $NoiseWords
+            if ($Score -gt $BestScore) { $BestScore = $Score; $Best = $Row }
+        }
+    }
+
     if ($null -eq $Best) { return $null }
     return [PSCustomObject]@{ Row = $Best; Score = $BestScore }
 }
 
 function Build-HCLIndex {
-    param([array]$Table, [string[]]$Fields)
+    param([array]$Table, [string[]]$Fields, [string[]]$NoiseWords = @())
     $Index = @{}
     if (-not $Table -or @($Table).Count -eq 0) { return $Index }
     foreach ($Row in $Table) {
         $HCLText = ($Fields | ForEach-Object { $Row.$_ }) -join ' '
-        $Tokens = @(Get-Tokens $HCLText)
+        $Tokens  = @(Get-Tokens -Text $HCLText -NoiseWords $NoiseWords)
         foreach ($t in $Tokens) {
             if (-not $Index.ContainsKey($t)) { $Index[$t] = [System.Collections.Generic.List[object]]::new() }
-            $Index[$t].Add($Row)
+            [void]$Index[$t].Add($Row)
         }
     }
     return $Index
@@ -306,9 +383,9 @@ function Get-VersionedCpuMatch {
 
 function Get-VersionedMatch {
     param([array]$Table90, [array]$Table91, [hashtable]$Index90, [hashtable]$Index91,
-          [string]$Detected, [string[]]$Fields, [int]$Threshold)
-    $Match90 = Find-BestHCLMatch -Table $Table90 -Index $Index90 -Detected $Detected -Fields $Fields
-    $Match91 = Find-BestHCLMatch -Table $Table91 -Index $Index91 -Detected $Detected -Fields $Fields
+          [string]$Detected, [string[]]$Fields, [int]$Threshold, [string[]]$NoiseWords = @())
+    $Match90 = Find-BestHCLMatch -Table $Table90 -Index $Index90 -Detected $Detected -Fields $Fields -NoiseWords $NoiseWords
+    $Match91 = Find-BestHCLMatch -Table $Table91 -Index $Index91 -Detected $Detected -Fields $Fields -NoiseWords $NoiseWords
     $Status90 = if ($Match90 -and $Match90.Score -ge $Threshold) { "OK" } else { "MISMATCH" }
     $Status91 = if ($Match91 -and $Match91.Score -ge $Threshold) { "OK" } else { "MISMATCH" }
     $Best = $null
@@ -415,14 +492,14 @@ if ($HCLData.FoundFiles.Count -gt 0) {
 Write-Host "[2/3] Building HCL index..." -ForegroundColor Cyan
 $MatchThreshold = 50
 $ServerFields  = @('Partner Name', 'Model'); $IOFields = @('Brand Name', 'Model')
-$Idx_Server90  = Build-HCLIndex -Table $SystemHCL90 -Fields $ServerFields
-$Idx_Server91  = Build-HCLIndex -Table $SystemHCL91 -Fields $ServerFields
-$Idx_Net90     = Build-HCLIndex -Table @($IOHCL90 | Where-Object { $_.'Device Type' -match 'Network' })    -Fields $IOFields
-$Idx_Net91     = Build-HCLIndex -Table @($IOHCL91 | Where-Object { $_.'Device Type' -match 'Network' })    -Fields $IOFields
-$Idx_Storage90 = Build-HCLIndex -Table @($IOHCL90 | Where-Object { $_.'Device Type' -notmatch 'Network' }) -Fields $IOFields
-$Idx_Storage91 = Build-HCLIndex -Table @($IOHCL91 | Where-Object { $_.'Device Type' -notmatch 'Network' }) -Fields $IOFields
-$Idx_Vsan90    = Build-HCLIndex -Table $VsanHCL90  -Fields $IOFields
-$Idx_Vsan91    = Build-HCLIndex -Table $VsanHCL91  -Fields $IOFields
+$Idx_Server90  = Build-HCLIndex -Table $SystemHCL90 -Fields $ServerFields -NoiseWords $Script:ServerNoise
+$Idx_Server91  = Build-HCLIndex -Table $SystemHCL91 -Fields $ServerFields -NoiseWords $Script:ServerNoise
+$Idx_Net90     = Build-HCLIndex -Table @($IOHCL90 | Where-Object { $_.'Device Type' -match 'Network' })    -Fields $IOFields -NoiseWords $Script:IONoise
+$Idx_Net91     = Build-HCLIndex -Table @($IOHCL91 | Where-Object { $_.'Device Type' -match 'Network' })    -Fields $IOFields -NoiseWords $Script:IONoise
+$Idx_Storage90 = Build-HCLIndex -Table @($IOHCL90 | Where-Object { $_.'Device Type' -notmatch 'Network' }) -Fields $IOFields -NoiseWords $Script:IONoise
+$Idx_Storage91 = Build-HCLIndex -Table @($IOHCL91 | Where-Object { $_.'Device Type' -notmatch 'Network' }) -Fields $IOFields -NoiseWords $Script:IONoise
+$Idx_Vsan90    = Build-HCLIndex -Table $VsanHCL90  -Fields $IOFields -NoiseWords $Script:IONoise
+$Idx_Vsan91    = Build-HCLIndex -Table $VsanHCL91  -Fields $IOFields -NoiseWords $Script:IONoise
 # CPU All Models 인덱스: Model 컬럼의 토큰(숫자 포함 모델 코드 포함) 기준으로 역인덱스 빌드
 $CpuIndex      = Build-HCLIndex -Table $CpuAllModels -Fields @('Model')
 Write-Host "       Index build complete. (CPU models: $(@($CpuAllModels).Count), index keys: $($CpuIndex.Count))" -ForegroundColor DarkGray
@@ -440,7 +517,7 @@ $ComplianceReport = @()
 # --- Server & CPU ---
 foreach ($HW in $HWReport) {
     $DetectedServerText = "$($HW.Vendor) $($HW.Model)"
-    $ServerMatch = Get-VersionedMatch -Table90 $SystemHCL90 -Table91 $SystemHCL91 -Index90 $Idx_Server90 -Index91 $Idx_Server91 -Detected $DetectedServerText -Fields $ServerFields -Threshold $MatchThreshold
+    $ServerMatch = Get-VersionedMatch -Table90 $SystemHCL90 -Table91 $SystemHCL91 -Index90 $Idx_Server90 -Index91 $Idx_Server91 -Detected $DetectedServerText -Fields $ServerFields -Threshold $MatchThreshold -NoiseWords $Script:ServerNoise
 
     $ServerScore   = if ($ServerMatch.Best) { $ServerMatch.Best.Score } else { 0 }
     $ServerHCLText = if ($ServerMatch.Best) { "$($ServerMatch.Best.Row.'Partner Name') $($ServerMatch.Best.Row.Model)" } else { "N/A" }
@@ -502,7 +579,25 @@ foreach ($HW in $HWReport) {
 # --- NIC ---
 foreach ($Nic in $PnicReport) {
     $DetectedNicText = "$($Nic.Device) / $($Nic.Model)"
-    $NicMatch = Get-VersionedMatch -Table90 $IOHCL_Network_90 -Table91 $IOHCL_Network_91 -Index90 $Idx_Net90 -Index91 $Idx_Net91 -Detected $Nic.Model -Fields $IOFields -Threshold $MatchThreshold
+
+    # USB 장치는 HCL 호환성 검사 대상에서 제외 (iDRAC Virtual NIC 등 내부 USB NIC)
+    # USB devices are excluded from HCL compatibility check (e.g., iDRAC Virtual NIC USB)
+    if ($Nic.Model -match '(?i)\bUSB\b') {
+        $ComplianceReport += [PSCustomObject]@{
+            "Cluster"        = if ($Nic.Cluster) { $Nic.Cluster } else { "N/A" }
+            "HostName"       = $Nic.HostName
+            "Category"       = "NIC"
+            "Detected"       = $DetectedNicText
+            "HCL_Match"      = "N/A (USB excluded)"
+            "Match_Score(%)" = "N/A"
+            "ESXi_9.0"       = "SKIP"
+            "ESXi_9.1"       = "SKIP"
+            "Note"           = "USB device excluded from HCL compatibility check"
+        }
+        continue
+    }
+
+    $NicMatch    = Get-VersionedMatch -Table90 $IOHCL_Network_90 -Table91 $IOHCL_Network_91 -Index90 $Idx_Net90 -Index91 $Idx_Net91 -Detected $Nic.Model -Fields $IOFields -Threshold $MatchThreshold -NoiseWords $Script:IONoise
     $NicScore    = if ($NicMatch.Best) { $NicMatch.Best.Score } else { 0 }
     $NicHCLText  = if ($NicMatch.Best) { "$($NicMatch.Best.Row.'Brand Name') $($NicMatch.Best.Row.Model)" } else { "N/A" }
     $NicNote     = if ($NicMatch.Best) { "Releases: $(Format-ReleaseText $NicMatch.Best.Row.'Supported Releases')" } else { "No matching entry in IO Devices (Network)" }
@@ -524,8 +619,26 @@ foreach ($Nic in $PnicReport) {
 # --- Storage Controller (HBA + RAID) ---
 foreach ($Ctrl in (@($HbaReport) + @($RaidReport))) {
     $DetectedCtrlText = "$($Ctrl.Device) / $($Ctrl.Model)"
-    $CtrlMatch = Get-VersionedMatch -Table90 $IOHCL_Storage_90 -Table91 $IOHCL_Storage_91 -Index90 $Idx_Storage90 -Index91 $Idx_Storage91 -Detected $Ctrl.Model -Fields $IOFields -Threshold $MatchThreshold
-    $VsanMatch = Get-VersionedMatch -Table90 $VsanHCL90 -Table91 $VsanHCL91 -Index90 $Idx_Vsan90 -Index91 $Idx_Vsan91 -Detected $Ctrl.Model -Fields $IOFields -Threshold $MatchThreshold
+
+    # USB 기반 스토리지 장치는 HCL 검사 대상에서 제외
+    # USB-based storage devices are excluded from HCL compatibility check
+    if ($Ctrl.Model -match '(?i)\bUSB\b') {
+        $ComplianceReport += [PSCustomObject]@{
+            "Cluster"        = if ($Ctrl.Cluster) { $Ctrl.Cluster } else { "N/A" }
+            "HostName"       = $Ctrl.HostName
+            "Category"       = "Storage_Controller"
+            "Detected"       = $DetectedCtrlText
+            "HCL_Match"      = "N/A (USB excluded)"
+            "Match_Score(%)" = "N/A"
+            "ESXi_9.0"       = "SKIP"
+            "ESXi_9.1"       = "SKIP"
+            "Note"           = "USB device excluded from HCL compatibility check"
+        }
+        continue
+    }
+
+    $CtrlMatch = Get-VersionedMatch -Table90 $IOHCL_Storage_90 -Table91 $IOHCL_Storage_91 -Index90 $Idx_Storage90 -Index91 $Idx_Storage91 -Detected $Ctrl.Model -Fields $IOFields -Threshold $MatchThreshold -NoiseWords $Script:IONoise
+    $VsanMatch = Get-VersionedMatch -Table90 $VsanHCL90 -Table91 $VsanHCL91 -Index90 $Idx_Vsan90 -Index91 $Idx_Vsan91 -Detected $Ctrl.Model -Fields $IOFields -Threshold $MatchThreshold -NoiseWords $Script:IONoise
 
     $CtrlScore   = if ($CtrlMatch.Best) { $CtrlMatch.Best.Score } else { 0 }
     $CtrlHCLText = if ($CtrlMatch.Best) { "$($CtrlMatch.Best.Row.'Brand Name') $($CtrlMatch.Best.Row.Model)" } else { "N/A" }
