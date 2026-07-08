@@ -174,30 +174,40 @@ function Build-HCLIndex {
     return $Index
 }
 
-function Get-CpuFamilyCodes {
-    param([string]$SeriesText)
-    return @([regex]::Matches($SeriesText, '[0-9][0-9A-Za-z]{2,5}') | ForEach-Object { ($_.Value -replace '[^0-9]', '') } | Where-Object { $_.Length -ge 2 })
-}
-
-function Find-CpuFamilyMatch {
-    param([string]$DetectedModel, [string]$Vendor, [array]$CpuTable)
+function Find-CpuModelMatch {
+    param([string]$DetectedModel, [array]$CpuTable)
     if (-not $CpuTable -or @($CpuTable).Count -eq 0 -or [string]::IsNullOrWhiteSpace($DetectedModel)) { return $null }
-    $Skus = @([regex]::Matches($DetectedModel, '\b[0-9]{4}\b') | ForEach-Object { $_.Value })
-    if ($Skus.Count -eq 0) { return $null }
-    $IsIntel = $Vendor -match '(?i)intel'
+    $DetLower = $DetectedModel.ToLower() -replace '[^a-z0-9]', ' ' -replace '\s+', ' '
+    # 1차: Model 컬럼 직접 매칭
     foreach ($Row in $CpuTable) {
-        $Codes = Get-CpuFamilyCodes -SeriesText $Row.'CPU Series'
-        foreach ($Sku in $Skus) {
-            foreach ($Code in $Codes) {
-                if ($Code.Length -lt 2) { continue }
-                $IsMatch = $false
-                if ($IsIntel) { $IsMatch = ($Sku.Substring(0, 2) -eq $Code.Substring(0, 2)) }
-                else { $IsMatch = ($Sku.Substring(3, 1) -eq $Code.Substring($Code.Length - 1)) -and ($Sku.Substring(0, 1) -eq $Code.Substring(0, 1)) }
-                if ($IsMatch) { return [PSCustomObject]@{ Row = $Row; Sku = $Sku; Code = $Code } }
+        $ModelLower = $Row.Model.ToLower() -replace '[^a-z0-9]', ' ' -replace '\s+', ' '
+        $ModelTokens = @($ModelLower.Split(' ') | Where-Object { $_ -ne '' })
+        if ($ModelTokens.Count -eq 0) { continue }
+        $AllMatch = $true
+        foreach ($t in $ModelTokens) { if ($DetLower -notmatch [regex]::Escape($t)) { $AllMatch = $false; break } }
+        if ($AllMatch) { return [PSCustomObject]@{ Row = $Row; MatchType = "ModelDirect" } }
+    }
+    # 2차: SKU 숫자+접미사 폴백 (6548N 등)
+    $SkuRaw = [regex]::Matches($DetectedModel, '[0-9]{4,5}[A-Za-z]*') | ForEach-Object { $_.Value }
+    foreach ($Sku in $SkuRaw) {
+        foreach ($Row in $CpuTable) {
+            if ($Row.Model -match [regex]::Escape($Sku)) { return [PSCustomObject]@{ Row = $Row; MatchType = "SKUFallback" } }
+        }
+        $SkuNum = $Sku -replace '[^0-9]', ''
+        if ($SkuNum.Length -ge 4) {
+            foreach ($Row in $CpuTable) {
+                if (($Row.Model -replace '[^0-9]', '') -eq $SkuNum) { return [PSCustomObject]@{ Row = $Row; MatchType = "SKUNumeric" } }
             }
         }
     }
     return $null
+}
+
+function Get-VersionedCpuMatch {
+    param([array]$CpuTable, [string]$DetectedModel, [string]$Vendor)
+    $Match = Find-CpuModelMatch -DetectedModel $DetectedModel -CpuTable $CpuTable
+    $Status = if ($Match) { "OK" } else { "MISMATCH" }
+    return [PSCustomObject]@{ Status90 = $Status; Status91 = $Status; Match90 = $Match; Match91 = $Match; Best = $Match }
 }
 
 function Get-VersionedMatch {
@@ -213,21 +223,12 @@ function Get-VersionedMatch {
     return [PSCustomObject]@{ Status90 = $Status90; Status91 = $Status91; Match90 = $Match90; Match91 = $Match91; Best = $Best }
 }
 
-function Get-VersionedCpuMatch {
-    param([array]$CpuTable90, [array]$CpuTable91, [string]$DetectedModel, [string]$Vendor)
-    $Match90 = Find-CpuFamilyMatch -DetectedModel $DetectedModel -Vendor $Vendor -CpuTable $CpuTable90
-    $Match91 = Find-CpuFamilyMatch -DetectedModel $DetectedModel -Vendor $Vendor -CpuTable $CpuTable91
-    $Status90 = if ($Match90) { "OK" } else { "MISMATCH" }
-    $Status91 = if ($Match91) { "OK" } else { "MISMATCH" }
-    $Best = if ($Match90) { $Match90 } elseif ($Match91) { $Match91 } else { $null }
-    return [PSCustomObject]@{ Status90 = $Status90; Status91 = $Status91; Match90 = $Match90; Match91 = $Match91; Best = $Best }
-}
 
 function Get-HCLFileType {
     param([string]$FilePath)
     try { $HeaderLine = Get-Content -Path $FilePath -TotalCount 1 -Encoding UTF8 -ErrorAction Stop } catch { return $null }
     if ([string]::IsNullOrWhiteSpace($HeaderLine)) { return $null }
-    if ($HeaderLine -match 'CPUID' -and $HeaderLine -match 'CPU Series')   { return "CPU" }
+    # CPU는 CPU_All_Models 파일로 별도 처리하므로 여기서는 인식하지 않음
     if ($HeaderLine -match 'Partner Name')                                 { return "Server" }
     if ($HeaderLine -match 'Device Type')                                  { return "IODevice" }
     if ($HeaderLine -match 'Brand Name' -and $HeaderLine -match 'Feature') { return "vSAN" }
@@ -246,7 +247,7 @@ function Get-HCLFileVersion {
 function Import-HCLData {
     param([string]$Path)
     $Result = [PSCustomObject]@{
-        CPU90 = @(); CPU91 = @(); IODevice90 = @(); IODevice91 = @()
+        IODevice90 = @(); IODevice91 = @()
         Server90 = @(); Server91 = @(); vSAN90 = @(); vSAN91 = @(); FoundFiles = @()
     }
     if (-not (Test-Path $Path)) { return $Result }
@@ -257,7 +258,6 @@ function Import-HCLData {
         try { $Data = Import-Csv -Path $File.FullName -Encoding UTF8 -ErrorAction Stop } catch { continue }
         $Version = Get-HCLFileVersion -FileName $File.Name
         switch ($Type) {
-            "CPU"      { if ($Version -ne "9.1") { $Result.CPU90      += $Data }; if ($Version -ne "9.0") { $Result.CPU91      += $Data } }
             "IODevice" { if ($Version -ne "9.1") { $Result.IODevice90 += $Data }; if ($Version -ne "9.0") { $Result.IODevice91 += $Data } }
             "Server"   { if ($Version -ne "9.1") { $Result.Server90   += $Data }; if ($Version -ne "9.0") { $Result.Server91   += $Data } }
             "vSAN"     { if ($Version -ne "9.1") { $Result.vSAN90     += $Data }; if ($Version -ne "9.0") { $Result.vSAN91     += $Data } }
@@ -269,18 +269,46 @@ function Import-HCLData {
 
 # ── HCL 데이터 로드 ──
 Write-Host "[1/3] Loading HCL data from: $HCLPath" -ForegroundColor Cyan
+
+# CPU All Models 파일 탐색: 파일명에 "CPU_All_Models" 포함, 또는 헤더 없는 6컬럼 AMD/Intel CSV
+$CpuAllModelsFile = Get-ChildItem -Path $HCLPath -Filter "*.csv" -File -ErrorAction SilentlyContinue |
+                    Where-Object { $_.Name -match '(?i)CPU_All_Models' } |
+                    Select-Object -First 1
+if (-not $CpuAllModelsFile) {
+    $CpuAllModelsFile = Get-ChildItem -Path $HCLPath -Filter "*.csv" -File -ErrorAction SilentlyContinue |
+                        Where-Object {
+                            try {
+                                $first = Get-Content $_.FullName -TotalCount 1 -Encoding UTF8 -ErrorAction Stop
+                                $first -match '^(AMD|Intel),' -and ($first -split ',').Count -ge 5
+                            } catch { $false }
+                        } | Select-Object -First 1
+}
+$CpuAllModels = $null
+if ($CpuAllModelsFile) {
+    try {
+        $CpuAllModels = Import-Csv -Path $CpuAllModelsFile.FullName -Encoding UTF8 `
+                        -Header "Vendor","Series","Model","Cores","Freq","TDP" -ErrorAction Stop
+        Write-Host "[INFO] CPU All Models: $($CpuAllModelsFile.Name) ($(@($CpuAllModels).Count) models, 9.0/9.1 공통 적용)" -ForegroundColor Gray
+    } catch {
+        Write-Host "[WARN] CPU All Models 로드 실패: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "[WARN] CPU_All_Models CSV를 '$HCLPath'에서 찾지 못했습니다. CPU 호환성 검사를 건너뜁니다." -ForegroundColor Yellow
+}
+
 $HCLData     = Import-HCLData -Path $HCLPath
-$CpuHCL90    = $HCLData.CPU90;      $CpuHCL91    = $HCLData.CPU91
 $IOHCL90     = $HCLData.IODevice90; $IOHCL91     = $HCLData.IODevice91
 $SystemHCL90 = $HCLData.Server90;   $SystemHCL91 = $HCLData.Server91
 $VsanHCL90   = $HCLData.vSAN90;     $VsanHCL91   = $HCLData.vSAN91
 
-$HasAnyHCLData = @($CpuHCL90 + $CpuHCL91 + $IOHCL90 + $IOHCL91 + $SystemHCL90 + $SystemHCL91 + $VsanHCL90 + $VsanHCL91).Count -gt 0
+$HasAnyHCLData = ($null -ne $CpuAllModels) -or
+                 (@($IOHCL90 + $IOHCL91 + $SystemHCL90 + $SystemHCL91 + $VsanHCL90 + $VsanHCL91).Count -gt 0)
 if (-not $HasAnyHCLData) {
     Write-Host ""
     Write-Host "[INFO] Hardware compatibility check was skipped: no HCL data files were found at '$HCLPath'." -ForegroundColor Cyan
-    Write-Host "       Place the HCL CSV files (CPU_Series, IO_Devices, Systems_Servers, vSAN_IO_Controller)" -ForegroundColor Cyan
-    Write-Host "       in the HCL folder next to this script, or specify the path with -HCLPath." -ForegroundColor Cyan
+    Write-Host "       Required files in the hcl folder:" -ForegroundColor Cyan
+    Write-Host "         CPU  : CPU_All_Models_*.csv (헤더 없는 6컬럼: Vendor, Series, Model, Cores, Freq, TDP)" -ForegroundColor Cyan
+    Write-Host "         IO / Server / vSAN: VMware HCL CSV 내보내기 파일" -ForegroundColor Cyan
     Exit
 }
 
@@ -346,10 +374,20 @@ foreach ($HW in $HWReport) {
     }
 
     $DetectedCpuText = "$($HW.CPU_Vendor) / $($HW.CPU_Model)"
-    $CpuMatch = Get-VersionedCpuMatch -CpuTable90 $CpuHCL90 -CpuTable91 $CpuHCL91 -DetectedModel $HW.CPU_Model -Vendor $HW.CPU_Vendor
-    $CpuScore    = if ($CpuMatch.Best) { 100 } else { 0 }
-    $CpuHCLText  = if ($CpuMatch.Best) { $CpuMatch.Best.Row.'CPU Series' } else { "N/A" }
-    $CpuNote     = if ($CpuMatch.Best) { "SKU '$($CpuMatch.Best.Sku)' <-> Series code '$($CpuMatch.Best.Code)' generation match / Releases: $(Format-ReleaseText $CpuMatch.Best.Row.'Supported Releases')" } elseif (@($CpuHCL90 + $CpuHCL91).Count -gt 0) { "No matching generation (Series) found in CPU_Series list" } else { "No CPU HCL data available" }
+    $CpuMatch = Get-VersionedCpuMatch -CpuTable $CpuAllModels -DetectedModel $HW.CPU_Model -Vendor $HW.CPU_Vendor
+    $CpuScore   = if ($CpuMatch.Best) { 100 } else { 0 }
+    $CpuHCLText = if ($CpuMatch.Best) { "$($CpuMatch.Best.Row.Series) / $($CpuMatch.Best.Row.Model)" } else { "N/A" }
+    $CpuNote    = if ($CpuMatch.Best) {
+        $MatchTypeLabel = switch ($CpuMatch.Best.MatchType) {
+            "ModelDirect" { "Direct model name match" }
+            "SKUFallback" { "SKU code match" }
+            "SKUNumeric"  { "Numeric SKU match" }
+            default       { "Match" }
+        }
+        "$MatchTypeLabel : '$($HW.CPU_Model)' -> '$($CpuMatch.Best.Row.Model)' in '$($CpuMatch.Best.Row.Series)'"
+    } elseif ($null -ne $CpuAllModels) {
+        "No matching model found in CPU_All_Models list (manual verification required)"
+    } else { "CPU_All_Models data not available" }
 
     $ComplianceReport += [PSCustomObject]@{
         "Cluster"        = if ($HW.Cluster) { $HW.Cluster } else { "N/A" }
