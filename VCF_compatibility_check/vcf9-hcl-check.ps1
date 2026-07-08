@@ -174,38 +174,132 @@ function Build-HCLIndex {
     return $Index
 }
 
+function Normalize-CpuText {
+    param([string]$Text)
+    if ([string]::IsNullOrWhiteSpace($Text)) { return "" }
+    # 주파수 패턴 제거: "@ 2.70GHz", "2.70GHz", "@ 2700MHz" 등
+    $Text = $Text -replace '@\s*[\d\.]+\s*[GM][Hh][Zz]', ''
+    $Text = $Text -replace '[\d\.]+\s*[GM][Hh][Zz]', ''
+    # CPU/Core 개수 패턴 제거: "64-Core", "96-Core", "32C/64T" 등
+    $Text = $Text -replace '\d+[-\s]?[Cc]ore[s]?', ''
+    $Text = $Text -replace '\d+[Cc]/\d+[Tt]', ''
+    # 정규화
+    return ($Text.ToLower() -replace '[^a-z0-9]', ' ' -replace '\s+', ' ').Trim()
+}
+
+function Get-CpuTokens {
+    param([string]$NormalizedText)
+    # 노이즈 단어 제거 (CPU 모델 식별에 도움 안 되는 단어들)
+    $NoiseWords = [System.Collections.Generic.HashSet[string]]@(
+        'cpu','processor','core','cores','ghz','mhz','r','v','s',
+        'genuineintel','authenticamd','at','the','gen'
+    )
+    return @($NormalizedText.Split(' ') | Where-Object {
+        $_.Length -ge 2 -and -not $NoiseWords.Contains($_)
+    })
+}
+
 function Find-CpuModelMatch {
-    param([string]$DetectedModel, [array]$CpuTable)
+    param([string]$DetectedModel, [array]$CpuTable, [hashtable]$CpuIndex)
     if (-not $CpuTable -or @($CpuTable).Count -eq 0 -or [string]::IsNullOrWhiteSpace($DetectedModel)) { return $null }
-    $DetLower = $DetectedModel.ToLower() -replace '[^a-z0-9]', ' ' -replace '\s+', ' '
-    # 1차: Model 컬럼 직접 매칭
-    foreach ($Row in $CpuTable) {
-        $ModelLower = $Row.Model.ToLower() -replace '[^a-z0-9]', ' ' -replace '\s+', ' '
-        $ModelTokens = @($ModelLower.Split(' ') | Where-Object { $_ -ne '' })
+
+    $DetNorm   = Normalize-CpuText -Text $DetectedModel
+    $DetTokens = Get-CpuTokens -NormalizedText $DetNorm
+
+    if ($DetTokens.Count -eq 0) { return $null }
+
+    # 인덱스 후보 좁히기: 숫자 포함 토큰(모델 번호) 우선, 길이 내림차순
+    $PriorityTokens = @($DetTokens | Where-Object { $_ -match '[0-9]' } | Sort-Object Length -Descending)
+    $OtherTokens    = @($DetTokens | Where-Object { $_ -notmatch '[0-9]' } | Sort-Object Length -Descending)
+    $LookupOrder    = $PriorityTokens + $OtherTokens
+
+    $Candidates = $null
+    $IndexKey   = $null
+    foreach ($t in $LookupOrder) {
+        if ($CpuIndex -and $CpuIndex.ContainsKey($t)) {
+            $Candidates = $CpuIndex[$t]
+            $IndexKey = $t
+            break
+        }
+    }
+    if (-not $Candidates) { $Candidates = $CpuTable }
+
+    # 1차: Model 컬럼 직접 매칭 (HCL Model의 모든 유효 토큰이 탐지값에 포함)
+    foreach ($Row in $Candidates) {
+        $ModelNorm   = Normalize-CpuText -Text $Row.Model
+        $ModelTokens = Get-CpuTokens -NormalizedText $ModelNorm
         if ($ModelTokens.Count -eq 0) { continue }
         $AllMatch = $true
-        foreach ($t in $ModelTokens) { if ($DetLower -notmatch [regex]::Escape($t)) { $AllMatch = $false; break } }
+        foreach ($t in $ModelTokens) {
+            # 단어 경계 기반 매칭: "30" 이 "6330" 의 일부로 잘못 매칭되는 것 방지
+            if ($DetNorm -notmatch "(?<![a-z0-9])$([regex]::Escape($t))(?![a-z0-9])") {
+                $AllMatch = $false; break
+            }
+        }
         if ($AllMatch) { return [PSCustomObject]@{ Row = $Row; MatchType = "ModelDirect" } }
     }
-    # 2차: SKU 숫자+접미사 폴백 (6548N 등)
+
+    # 2차: 인덱스 미사용 전체 테이블 재시도 (후보 축소로 못찾은 경우 커버)
+    if ($Candidates.Count -lt $CpuTable.Count) {
+        foreach ($Row in $CpuTable) {
+            $ModelNorm   = Normalize-CpuText -Text $Row.Model
+            $ModelTokens = Get-CpuTokens -NormalizedText $ModelNorm
+            if ($ModelTokens.Count -eq 0) { continue }
+            $AllMatch = $true
+            foreach ($t in $ModelTokens) {
+                if ($DetNorm -notmatch "(?<![a-z0-9])$([regex]::Escape($t))(?![a-z0-9])") {
+                    $AllMatch = $false; break
+                }
+            }
+            if ($AllMatch) { return [PSCustomObject]@{ Row = $Row; MatchType = "ModelFullScan" } }
+        }
+    }
+
+    # 3차: SKU 번호+접미사 폴백 (6548N, 7763 등)
     $SkuRaw = [regex]::Matches($DetectedModel, '[0-9]{4,5}[A-Za-z]*') | ForEach-Object { $_.Value }
     foreach ($Sku in $SkuRaw) {
-        foreach ($Row in $CpuTable) {
-            if ($Row.Model -match [regex]::Escape($Sku)) { return [PSCustomObject]@{ Row = $Row; MatchType = "SKUFallback" } }
+        $SkuKey = $Sku.ToLower()
+        $SkuCandidates = if ($CpuIndex -and $CpuIndex.ContainsKey($SkuKey)) { $CpuIndex[$SkuKey] } else { $CpuTable }
+        foreach ($Row in $SkuCandidates) {
+            if ($Row.Model -match "(?i)(?<![a-z0-9])$([regex]::Escape($Sku))(?![a-z0-9])") {
+                return [PSCustomObject]@{ Row = $Row; MatchType = "SKUMatch" }
+            }
         }
+        # 숫자만 추출 비교 (접미사 다른 경우 대응: 6548N vs 6548)
         $SkuNum = $Sku -replace '[^0-9]', ''
         if ($SkuNum.Length -ge 4) {
-            foreach ($Row in $CpuTable) {
-                if (($Row.Model -replace '[^0-9]', '') -eq $SkuNum) { return [PSCustomObject]@{ Row = $Row; MatchType = "SKUNumeric" } }
+            $NumKey = $SkuNum
+            $NumCandidates = if ($CpuIndex -and $CpuIndex.ContainsKey($NumKey)) { $CpuIndex[$NumKey] } else { $CpuTable }
+            foreach ($Row in $NumCandidates) {
+                if (($Row.Model -replace '[^0-9]', '') -eq $SkuNum) {
+                    return [PSCustomObject]@{ Row = $Row; MatchType = "SKUNumeric" }
+                }
             }
         }
     }
+
+    # 4차: Series 레벨 폴백 (모델은 못찾아도 시리즈 텍스트에서 탐지 토큰이 충분히 일치하면 시리즈 반환)
+    $BestSeriesRow = $null; $BestSeriesScore = 0
+    foreach ($Row in $CpuTable) {
+        $SeriesNorm   = Normalize-CpuText -Text $Row.Series
+        $SeriesTokens = Get-CpuTokens -NormalizedText $SeriesNorm
+        $MatchCount   = ($SeriesTokens | Where-Object {
+            $DetNorm -match "(?<![a-z0-9])$([regex]::Escape($_))(?![a-z0-9])"
+        }).Count
+        if ($MatchCount -gt $BestSeriesScore) {
+            $BestSeriesScore = $MatchCount; $BestSeriesRow = $Row
+        }
+    }
+    if ($BestSeriesRow -and $BestSeriesScore -ge 2) {
+        return [PSCustomObject]@{ Row = $BestSeriesRow; MatchType = "SeriesFallback(score=$BestSeriesScore)" }
+    }
+
     return $null
 }
 
 function Get-VersionedCpuMatch {
-    param([array]$CpuTable, [string]$DetectedModel, [string]$Vendor)
-    $Match = Find-CpuModelMatch -DetectedModel $DetectedModel -CpuTable $CpuTable
+    param([array]$CpuTable, [hashtable]$CpuIndex, [string]$DetectedModel, [string]$Vendor)
+    $Match = Find-CpuModelMatch -DetectedModel $DetectedModel -CpuTable $CpuTable -CpuIndex $CpuIndex
     $Status = if ($Match) { "OK" } else { "MISMATCH" }
     return [PSCustomObject]@{ Status90 = $Status; Status91 = $Status; Match90 = $Match; Match91 = $Match; Best = $Match }
 }
@@ -284,6 +378,7 @@ if (-not $CpuAllModelsFile) {
                         } | Select-Object -First 1
 }
 $CpuAllModels = $null
+$CpuIndex     = $null
 if ($CpuAllModelsFile) {
     try {
         $CpuAllModels = Import-Csv -Path $CpuAllModelsFile.FullName -Encoding UTF8 `
@@ -328,7 +423,9 @@ $Idx_Storage90 = Build-HCLIndex -Table @($IOHCL90 | Where-Object { $_.'Device Ty
 $Idx_Storage91 = Build-HCLIndex -Table @($IOHCL91 | Where-Object { $_.'Device Type' -notmatch 'Network' }) -Fields $IOFields
 $Idx_Vsan90    = Build-HCLIndex -Table $VsanHCL90  -Fields $IOFields
 $Idx_Vsan91    = Build-HCLIndex -Table $VsanHCL91  -Fields $IOFields
-Write-Host "       Index build complete." -ForegroundColor DarkGray
+# CPU All Models 인덱스: Model 컬럼의 토큰(숫자 포함 모델 코드 포함) 기준으로 역인덱스 빌드
+$CpuIndex      = Build-HCLIndex -Table $CpuAllModels -Fields @('Model')
+Write-Host "       Index build complete. (CPU models: $(@($CpuAllModels).Count), index keys: $($CpuIndex.Count))" -ForegroundColor DarkGray
 
 # ── 호환성 검사 ──
 Write-Host "[3/3] Running compatibility checks..." -ForegroundColor Cyan
@@ -374,7 +471,7 @@ foreach ($HW in $HWReport) {
     }
 
     $DetectedCpuText = "$($HW.CPU_Vendor) / $($HW.CPU_Model)"
-    $CpuMatch = Get-VersionedCpuMatch -CpuTable $CpuAllModels -DetectedModel $HW.CPU_Model -Vendor $HW.CPU_Vendor
+    $CpuMatch = Get-VersionedCpuMatch -CpuTable $CpuAllModels -CpuIndex $CpuIndex -DetectedModel $HW.CPU_Model -Vendor $HW.CPU_Vendor
     $CpuScore   = if ($CpuMatch.Best) { 100 } else { 0 }
     $CpuHCLText = if ($CpuMatch.Best) { "$($CpuMatch.Best.Row.Series) / $($CpuMatch.Best.Row.Model)" } else { "N/A" }
     $CpuNote    = if ($CpuMatch.Best) {
