@@ -512,12 +512,81 @@ $IOHCL_Network_91 = @($IOHCL91 | Where-Object { $_.'Device Type' -match 'Network
 $IOHCL_Storage_90 = @($IOHCL90 | Where-Object { $_.'Device Type' -notmatch 'Network' })
 $IOHCL_Storage_91 = @($IOHCL91 | Where-Object { $_.'Device Type' -notmatch 'Network' })
 
-$ComplianceReport = @()
+# ────────────────────────────────────────────────────────────────
+#  사전 일괄 매칭 (Pre-batch matching by unique model)
+#  동일 모델이 여러 호스트에 반복 등장해도 HCL 비교는 모델당 1회만 수행.
+#  결과를 해시테이블에 캐시하고, 이후 루프에서는 조회만 수행.
+# ────────────────────────────────────────────────────────────────
 
-# --- Server & CPU ---
+# Server: Vendor|Model 조합 기준 고유 키
+$ServerMatchCache = @{}
+$UniqueServerKeys = $HWReport | ForEach-Object { "$($_.Vendor)|$($_.Model)" } | Select-Object -Unique
+Write-Host "       Server  : $(@($HWReport).Count) rows → $($UniqueServerKeys.Count) unique models" -ForegroundColor DarkGray
+foreach ($Key in $UniqueServerKeys) {
+    $Parts   = $Key -split '\|', 2
+    $Vendor  = $Parts[0]; $Model = $Parts[1]
+    $Detected = "$Vendor $Model"
+    $ServerMatchCache[$Key] = Get-VersionedMatch `
+        -Table90 $SystemHCL90 -Table91 $SystemHCL91 `
+        -Index90 $Idx_Server90 -Index91 $Idx_Server91 `
+        -Detected $Detected -Fields $ServerFields `
+        -Threshold $MatchThreshold -NoiseWords $Script:ServerNoise
+}
+
+# CPU: CPU_Model 기준 고유 키
+$CpuMatchCache = @{}
+$UniqueCpuModels = $HWReport | ForEach-Object { $_.CPU_Model } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
+Write-Host "       CPU     : $(@($HWReport).Count) rows → $($UniqueCpuModels.Count) unique models" -ForegroundColor DarkGray
+foreach ($CpuModel in $UniqueCpuModels) {
+    $SampleRow = $HWReport | Where-Object { $_.CPU_Model -eq $CpuModel } | Select-Object -First 1
+    $CpuMatchCache[$CpuModel] = Get-VersionedCpuMatch `
+        -CpuTable $CpuAllModels -CpuIndex $CpuIndex `
+        -DetectedModel $CpuModel -Vendor $SampleRow.CPU_Vendor
+}
+
+# NIC: Model 기준 고유 키 (USB 제외)
+$NicMatchCache = @{}
+$UniqueNicModels = $PnicReport | Where-Object { $_.Model -notmatch '(?i)\bUSB\b' } `
+                               | ForEach-Object { $_.Model } | Select-Object -Unique
+Write-Host "       NIC     : $(@($PnicReport).Count) rows → $($UniqueNicModels.Count) unique models (USB excluded)" -ForegroundColor DarkGray
+foreach ($NicModel in $UniqueNicModels) {
+    $NicMatchCache[$NicModel] = Get-VersionedMatch `
+        -Table90 $IOHCL_Network_90 -Table91 $IOHCL_Network_91 `
+        -Index90 $Idx_Net90 -Index91 $Idx_Net91 `
+        -Detected $NicModel -Fields $IOFields `
+        -Threshold $MatchThreshold -NoiseWords $Script:IONoise
+}
+
+# Storage Controller: Model 기준 고유 키 (USB 제외), vSAN도 함께 캐시
+$StorageMatchCache = @{}
+$AllStorageRows    = @($HbaReport) + @($RaidReport)
+$UniqueStorageModels = $AllStorageRows | Where-Object { $_.Model -notmatch '(?i)\bUSB\b' } `
+                                       | ForEach-Object { $_.Model } | Select-Object -Unique
+Write-Host "       Storage : $(@($AllStorageRows).Count) rows → $($UniqueStorageModels.Count) unique models (USB excluded)" -ForegroundColor DarkGray
+foreach ($StModel in $UniqueStorageModels) {
+    $StorageMatchCache[$StModel] = [PSCustomObject]@{
+        Ctrl = Get-VersionedMatch `
+            -Table90 $IOHCL_Storage_90 -Table91 $IOHCL_Storage_91 `
+            -Index90 $Idx_Storage90 -Index91 $Idx_Storage91 `
+            -Detected $StModel -Fields $IOFields `
+            -Threshold $MatchThreshold -NoiseWords $Script:IONoise
+        Vsan = Get-VersionedMatch `
+            -Table90 $VsanHCL90 -Table91 $VsanHCL91 `
+            -Index90 $Idx_Vsan90 -Index91 $Idx_Vsan91 `
+            -Detected $StModel -Fields $IOFields `
+            -Threshold $MatchThreshold -NoiseWords $Script:IONoise
+    }
+}
+Write-Host "       Pre-batch matching complete." -ForegroundColor DarkGray
+
+$ComplianceReport = @()
+$SkippedReport    = @()   # USB 등 검사 제외 항목 (집계·HTML 표시 모두 제외)
+
+# --- Server & CPU (캐시 조회) ---
 foreach ($HW in $HWReport) {
     $DetectedServerText = "$($HW.Vendor) $($HW.Model)"
-    $ServerMatch = Get-VersionedMatch -Table90 $SystemHCL90 -Table91 $SystemHCL91 -Index90 $Idx_Server90 -Index91 $Idx_Server91 -Detected $DetectedServerText -Fields $ServerFields -Threshold $MatchThreshold -NoiseWords $Script:ServerNoise
+    $ServerCacheKey     = "$($HW.Vendor)|$($HW.Model)"
+    $ServerMatch        = $ServerMatchCache[$ServerCacheKey]
 
     $ServerScore   = if ($ServerMatch.Best) { $ServerMatch.Best.Score } else { 0 }
     $ServerHCLText = if ($ServerMatch.Best) { "$($ServerMatch.Best.Row.'Partner Name') $($ServerMatch.Best.Row.Model)" } else { "N/A" }
@@ -548,7 +617,7 @@ foreach ($HW in $HWReport) {
     }
 
     $DetectedCpuText = "$($HW.CPU_Vendor) / $($HW.CPU_Model)"
-    $CpuMatch = Get-VersionedCpuMatch -CpuTable $CpuAllModels -CpuIndex $CpuIndex -DetectedModel $HW.CPU_Model -Vendor $HW.CPU_Vendor
+    $CpuMatch        = $CpuMatchCache[$HW.CPU_Model]
     $CpuScore   = if ($CpuMatch.Best) { 100 } else { 0 }
     $CpuHCLText = if ($CpuMatch.Best) { "$($CpuMatch.Best.Row.Series) / $($CpuMatch.Best.Row.Model)" } else { "N/A" }
     $CpuNote    = if ($CpuMatch.Best) {
@@ -583,21 +652,17 @@ foreach ($Nic in $PnicReport) {
     # USB 장치는 HCL 호환성 검사 대상에서 제외 (iDRAC Virtual NIC 등 내부 USB NIC)
     # USB devices are excluded from HCL compatibility check (e.g., iDRAC Virtual NIC USB)
     if ($Nic.Model -match '(?i)\bUSB\b') {
-        $ComplianceReport += [PSCustomObject]@{
-            "Cluster"        = if ($Nic.Cluster) { $Nic.Cluster } else { "N/A" }
-            "HostName"       = $Nic.HostName
-            "Category"       = "NIC"
-            "Detected"       = $DetectedNicText
-            "HCL_Match"      = "N/A (USB excluded)"
-            "Match_Score(%)" = "N/A"
-            "ESXi_9.0"       = "SKIP"
-            "ESXi_9.1"       = "SKIP"
-            "Note"           = "USB device excluded from HCL compatibility check"
+        $SkippedReport += [PSCustomObject]@{
+            "Cluster"  = if ($Nic.Cluster) { $Nic.Cluster } else { "N/A" }
+            "HostName" = $Nic.HostName
+            "Category" = "NIC"
+            "Detected" = $DetectedNicText
+            "Reason"   = "USB device excluded from HCL compatibility check"
         }
         continue
     }
 
-    $NicMatch    = Get-VersionedMatch -Table90 $IOHCL_Network_90 -Table91 $IOHCL_Network_91 -Index90 $Idx_Net90 -Index91 $Idx_Net91 -Detected $Nic.Model -Fields $IOFields -Threshold $MatchThreshold -NoiseWords $Script:IONoise
+    $NicMatch    = $NicMatchCache[$Nic.Model]
     $NicScore    = if ($NicMatch.Best) { $NicMatch.Best.Score } else { 0 }
     $NicHCLText  = if ($NicMatch.Best) { "$($NicMatch.Best.Row.'Brand Name') $($NicMatch.Best.Row.Model)" } else { "N/A" }
     $NicNote     = if ($NicMatch.Best) { "Releases: $(Format-ReleaseText $NicMatch.Best.Row.'Supported Releases')" } else { "No matching entry in IO Devices (Network)" }
@@ -623,22 +688,19 @@ foreach ($Ctrl in (@($HbaReport) + @($RaidReport))) {
     # USB 기반 스토리지 장치는 HCL 검사 대상에서 제외
     # USB-based storage devices are excluded from HCL compatibility check
     if ($Ctrl.Model -match '(?i)\bUSB\b') {
-        $ComplianceReport += [PSCustomObject]@{
-            "Cluster"        = if ($Ctrl.Cluster) { $Ctrl.Cluster } else { "N/A" }
-            "HostName"       = $Ctrl.HostName
-            "Category"       = "Storage_Controller"
-            "Detected"       = $DetectedCtrlText
-            "HCL_Match"      = "N/A (USB excluded)"
-            "Match_Score(%)" = "N/A"
-            "ESXi_9.0"       = "SKIP"
-            "ESXi_9.1"       = "SKIP"
-            "Note"           = "USB device excluded from HCL compatibility check"
+        $SkippedReport += [PSCustomObject]@{
+            "Cluster"  = if ($Ctrl.Cluster) { $Ctrl.Cluster } else { "N/A" }
+            "HostName" = $Ctrl.HostName
+            "Category" = "Storage_Controller"
+            "Detected" = $DetectedCtrlText
+            "Reason"   = "USB device excluded from HCL compatibility check"
         }
         continue
     }
 
-    $CtrlMatch = Get-VersionedMatch -Table90 $IOHCL_Storage_90 -Table91 $IOHCL_Storage_91 -Index90 $Idx_Storage90 -Index91 $Idx_Storage91 -Detected $Ctrl.Model -Fields $IOFields -Threshold $MatchThreshold -NoiseWords $Script:IONoise
-    $VsanMatch = Get-VersionedMatch -Table90 $VsanHCL90 -Table91 $VsanHCL91 -Index90 $Idx_Vsan90 -Index91 $Idx_Vsan91 -Detected $Ctrl.Model -Fields $IOFields -Threshold $MatchThreshold -NoiseWords $Script:IONoise
+    $Cached    = $StorageMatchCache[$Ctrl.Model]
+    $CtrlMatch = $Cached.Ctrl
+    $VsanMatch = $Cached.Vsan
 
     $CtrlScore   = if ($CtrlMatch.Best) { $CtrlMatch.Best.Score } else { 0 }
     $CtrlHCLText = if ($CtrlMatch.Best) { "$($CtrlMatch.Best.Row.'Brand Name') $($CtrlMatch.Best.Row.Model)" } else { "N/A" }
@@ -662,10 +724,16 @@ foreach ($Ctrl in (@($HbaReport) + @($RaidReport))) {
 
 # ── CSV 출력 ──
 if ($ComplianceReport) {
-    $ComplianceReport | Group-Object Category | ForEach-Object {
+    # SKIP 항목은 ComplianceReport에서 제외 후 카테고리별로 분리 저장
+    $ComplianceReport | Where-Object { $_.'ESXi_9.0' -ne "SKIP" } | Group-Object Category | ForEach-Object {
         $SafeName = $_.Name -replace '[^a-zA-Z0-9]', ''
         $_.Group | Export-Csv -Path "$ReportDir\Compatibility_$SafeName.csv" -NoTypeInformation -Encoding UTF8
     }
+}
+# USB 등 검사 제외 항목은 별도 파일로 기록 (참고용, 집계 미포함)
+if ($SkippedReport) {
+    $SkippedReport | Export-Csv -Path "$ReportDir\Compatibility_Skipped_USB.csv" -NoTypeInformation -Encoding UTF8
+    Write-Host "[INFO] USB excluded items saved to: Compatibility_Skipped_USB.csv ($(@($SkippedReport).Count) items)" -ForegroundColor DarkGray
 }
 
 # ── HTML 리포트 ──
@@ -732,8 +800,8 @@ $HostSummary = $ComplianceReport | Group-Object HostName | ForEach-Object {
     $Rows = $_.Group; $hw = $HWLookup[$_.Name]
     $Cores = if ($hw -and $hw.Total_Cores) { [int]$hw.Total_Cores } else { 0 }
     [PSCustomObject]@{ HostName = $_.Name; Cluster = ($Rows | Select-Object -First 1).Cluster; Cores = $Cores
-        AllOk90 = (@($Rows | Where-Object { $_.'ESXi_9.0' -ne "OK" }).Count -eq 0)
-        AllOk91 = (@($Rows | Where-Object { $_.'ESXi_9.1' -ne "OK" }).Count -eq 0) }
+        AllOk90 = (@($Rows | Where-Object { $_.'ESXi_9.0' -ne "OK" -and $_.'ESXi_9.0' -ne "SKIP" }).Count -eq 0)
+        AllOk91 = (@($Rows | Where-Object { $_.'ESXi_9.1' -ne "OK" -and $_.'ESXi_9.1' -ne "SKIP" }).Count -eq 0) }
 }
 $Full90Hosts = @($HostSummary | Where-Object { $_.AllOk90 }); $Mis90Hosts = @($HostSummary | Where-Object { -not $_.AllOk90 })
 $Full91Hosts = @($HostSummary | Where-Object { $_.AllOk91 }); $Mis91Hosts = @($HostSummary | Where-Object { -not $_.AllOk91 })
@@ -755,14 +823,15 @@ $ClusterHostSummary = $HostSummary | Group-Object Cluster | ForEach-Object {
         Full91Count = $cf91.Count; Full91Cores = $cf91c; Mis91Count = $cm91.Count; Mis91Cores = $cm91c; Mis91HostNames = ($cm91 | ForEach-Object { $_.HostName }) -join ', ' }
 } | Sort-Object Cluster
 
-$CategorySummary = $ComplianceReport | Group-Object Category | ForEach-Object {
+$CategorySummary = $ComplianceReport | Where-Object { $_.'ESXi_9.0' -ne "SKIP" } | Group-Object Category | ForEach-Object {
     $Ok90 = @($_.Group | Where-Object { $_.'ESXi_9.0' -eq "OK" }).Count
     $Ok91 = @($_.Group | Where-Object { $_.'ESXi_9.1' -eq "OK" }).Count
     [PSCustomObject]@{ Category = $_.Name; Total = $_.Count; Ok90 = $Ok90; Mis90 = $_.Count - $Ok90; Rate90 = if ($_.Count -gt 0) { [Math]::Round(($Ok90/$_.Count)*100,0) } else { 0 }; Ok91 = $Ok91; Mis91 = $_.Count - $Ok91; Rate91 = if ($_.Count -gt 0) { [Math]::Round(($Ok91/$_.Count)*100,0) } else { 0 } }
 }
-$TotalAll = $ComplianceReport.Count
-$TotalOk90 = @($ComplianceReport | Where-Object { $_.'ESXi_9.0' -eq "OK" }).Count; $TotalMis90 = $TotalAll - $TotalOk90
-$TotalOk91 = @($ComplianceReport | Where-Object { $_.'ESXi_9.1' -eq "OK" }).Count; $TotalMis91 = $TotalAll - $TotalOk91
+$ActiveReport  = @($ComplianceReport | Where-Object { $_.'ESXi_9.0' -ne "SKIP" })
+$TotalAll = $ActiveReport.Count
+$TotalOk90 = @($ActiveReport | Where-Object { $_.'ESXi_9.0' -eq "OK" }).Count; $TotalMis90 = $TotalAll - $TotalOk90
+$TotalOk91 = @($ActiveReport | Where-Object { $_.'ESXi_9.1' -eq "OK" }).Count; $TotalMis91 = $TotalAll - $TotalOk91
 $TotalRate90 = if ($TotalAll -gt 0) { [Math]::Round(($TotalOk90/$TotalAll)*100,0) } else { 0 }
 $TotalRate91 = if ($TotalAll -gt 0) { [Math]::Round(($TotalOk91/$TotalAll)*100,0) } else { 0 }
 
@@ -832,7 +901,7 @@ foreach ($CG in $ClusterGroups) {
 }
 
 # 콘솔 요약
-$Mismatches = $ComplianceReport | Where-Object { $_.'ESXi_9.0' -eq "MISMATCH" -or $_.'ESXi_9.1' -eq "MISMATCH" }
+$Mismatches = $ComplianceReport | Where-Object { ($_.'ESXi_9.0' -eq "MISMATCH" -or $_.'ESXi_9.1' -eq "MISMATCH") -and $_.'ESXi_9.0' -ne "SKIP" }
 Write-Host ""
 Write-Host "===============================================================================" -ForegroundColor Yellow
 Write-Host " VCF9 Hardware Compatibility Check Summary (ESXi 9.0 / 9.1)" -ForegroundColor Yellow
