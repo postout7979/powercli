@@ -19,7 +19,7 @@
 | HCL 비교용 CSV 4종 | VMware Compatibility Guide에서 내려받은 아래 4개 파일 |
 
 **HCL CSV 4종:**
-- **CPU 정보**: CPU Series별 지원 ESXi 버전
+- **CPU 정보**: ESXi 버전 9.1의 CPU 세부 모델 리스트(100프로 없을 수도 있으니 매칭 안되는 경우 수동 추가 확인 요망)
 - **IO Devices**: NIC / RAID / HBA 등 I/O 장치별 지원 ESXi 버전
 - **Systems / Servers**: 서버 벤더·모델별 지원 CPU Series, GPU, ESXi 버전
 - **vSAN I/O Controller**: vSAN용 스토리지 컨트롤러 지원 목록
@@ -39,8 +39,7 @@ C:\powercli\
  ├─ vcf9-precheck-script-cs.ps1
  ├─ vcf9-hcl-check.ps1
  └─ hcl\                              ← HCL CSV 4종을 여기에 위치 (두 스크립트 공통)
-     ├─ CPU_Series_9_0.csv            (ESXi 9.0 전용)
-     ├─ CPU_Series_9_1.csv            (ESXi 9.1 전용)
+     ├─ CPU_all_Series_.csv                      (ESXi 9.1 전용)
      ├─ IO_Devices_9_0.csv
      ├─ IO_Devices_9_1.csv
      ├─ Systems_Servers_9_0.csv
