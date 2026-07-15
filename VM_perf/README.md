@@ -80,15 +80,6 @@ CSV로 저장하는 PowerShell 스크립트입니다.
 >   거의 없었다는 뜻이며, 반대로 지속적으로 값이 잡히면 리소스 증설/재배치 검토가 필요한 신호입니다.
 > - `guestfilesystem|percentage_total`은 VMware Tools가 설치·실행 중이어야 값이 수집됩니다.
 
-### 제거된 컬럼 (2026-07-15 실측 결과 0/172 확인 후 제거)
-
-이 환경에서는 아래 statKey가 전혀 수집되지 않아 스크립트에서 제거했습니다. (다른 환경에서는 수집될 수도
-있으니, 필요하면 "참고/커스터마이징" 섹션을 참고해 다시 추가하세요.)
-
-- `mem|vmmemctl_average` (Mem_Balloon_KB) — vROps 기본 정책상 Disabled Metric
-- `disk|totalLatency_average`, `disk|totalReadLatency_average`, `disk|totalWriteLatency_average`, `disk|commandsAveraged_average` (Disk_TotalLatency_ms, Disk_ReadLatency_ms, Disk_WriteLatency_ms, Disk_IOPS)
-- `virtualDisk|totalLatency_average`, `virtualDisk|totalReadLatency_average`, `virtualDisk|totalWriteLatency_average`, `virtualDisk|commandsAveraged_average`, `virtualDisk|numberReadAveraged_average`, `virtualDisk|numberWriteAveraged_average` (VD_TotalLatency_ms, VD_ReadLatency_ms, VD_WriteLatency_ms, VD_TotalIOPS, VD_ReadIOPS, VD_WriteIOPS)
-- `net|droppedPct` (Net_DroppedPct)
 
 ## SCSI 컨트롤러별 상세 CSV (`_VirtualDiskDetail.csv`)
 
@@ -116,22 +107,6 @@ SCSI 인스턴스를 자동으로 탐색한 뒤, 인스턴스별로 아래 지�
    기존 방식과 동일하게 `resources/stats/query`를 AVG/MAX로 호출합니다.
 3. VM에 해당 인스턴스가 없으면(예: VM A에는 scsi0:0만 있는데 VM B의 scsi0:1을 조회) 그냥 빈 값으로
    남고 별도 오류는 발생하지 않습니다.
-
-## 왜 일부 메트릭이 비어 있었을까요? (참고 — 이미 제거 조치됨)
-
-2026-07-15 실제 수집 결과, 위 "제거된 컬럼" 목록의 statKey들은 172개 VM 전체에서 0건이었습니다.
-아래는 그 원인으로 추정되는 사항이며, 참고용으로 남겨둡니다.
-
-- **`disk|` 그룹 vs `virtualDisk|` 그룹**: 환경/정책 설정에 따라 둘 중 하나만 실제로 수집되는 경우가
-  흔합니다. 이 환경에서는 두 그룹 모두 레이턴시/IOPS 계열은 수집되지 않았고, 처리량(KBps)만
-  일부(`disk|usage_average`) 또는 대부분(`virtualDisk|read_average`, `write_average`) 수집되었습니다.
-- **정책상 기본 비활성 메트릭**: VMware 공식 문서 기준으로 `mem|vmmemctl_average`(벌룬)는
-  vROps의 **Disabled Metrics(기본 비활성 메트릭)** 목록에 포함되어 있습니다. 필요하다면
-  Aria Ops의 **Policy → Metrics and Properties** 에서 활성화한 뒤 스크립트에 다시 추가하세요.
-- **vCenter Statistics Level**: 디스크/네트워크의 상세 카운터(레이턴시, IOPS, 패킷 드롭률 등)는
-  vCenter의 **Statistics Level**이 1(기본값)일 때는 수집되지 않고, Level 2 이상이어야 수집되는
-  경우가 많습니다. vSphere Client → vCenter → Configure → General → Statistics 에서 레벨을
-  확인해보세요. (레벨을 올리면 vCenter DB 용량/부하가 늘어나므로 신중히 적용하세요.)
 
 ## 동작 개요
 
