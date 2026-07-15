@@ -1,0 +1,2674 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>VM Specification Report - WD-HCS-cl01</title>
+<style>
+    :root {
+        --navy: #0b2545;
+        --navy-light: #13355e;
+        --teal: #0f9b8e;
+        --teal-light: #e4f7f5;
+        --amber: #d98c1f;
+        --amber-light: #fdf1de;
+        --gray: #6b7280;
+        --gray-light: #f1f3f5;
+        --border: #e2e5e9;
+        --bg: #f7f9fb;
+        --text: #1f2937;
+    }
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        font-family: 'Segoe UI', 'Malgun Gothic', -apple-system, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+    }
+    header {
+        background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+        color: #fff;
+        padding: 28px 36px;
+    }
+    header .back-link { display: inline-block; margin-bottom: 10px; color: #9fb6d1; font-size: 12px; text-decoration: none; }
+    header .back-link:hover { color: #fff; }
+    header h1 { margin: 0 0 6px 0; font-size: 22px; font-weight: 600; }
+    header p { margin: 0; font-size: 13px; color: #c7d3e0; }
+
+    .container { padding: 24px 36px 60px 36px; }
+
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 14px;
+        margin: -34px 0 24px 0;
+    }
+    .kpi-card {
+        background: #fff;
+        border-radius: 10px;
+        padding: 16px 18px;
+        box-shadow: 0 2px 10px rgba(11,37,69,0.08);
+        border-top: 3px solid var(--teal);
+    }
+    .kpi-card.amber { border-top-color: var(--amber); }
+    .kpi-card .value { font-size: 24px; font-weight: 700; color: var(--navy); }
+    .kpi-card .label { font-size: 12px; color: var(--gray); margin-top: 4px; }
+
+    .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 16px;
+        background: #fff;
+        padding: 14px 16px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(11,37,69,0.06);
+    }
+    .toolbar input[type=text], .toolbar select {
+        padding: 8px 12px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 13px;
+        background: #fff;
+    }
+    .toolbar input[type=text] { flex: 1; min-width: 220px; }
+    .toolbar label { font-size: 12px; color: var(--gray); margin-right: 4px; }
+    .result-count { font-size: 12px; color: var(--gray); margin-left: auto; }
+
+    table.main-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #fff;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(11,37,69,0.06);
+    }
+    table.main-table thead th {
+        background: var(--navy);
+        color: #fff;
+        text-align: left;
+        padding: 10px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        position: sticky;
+        top: 0;
+    }
+    table.main-table tbody td {
+        padding: 10px 12px;
+        font-size: 13px;
+        border-bottom: 1px solid var(--border);
+    }
+    .vm-row { cursor: pointer; }
+    .vm-row:hover { background: var(--teal-light); }
+    .vm-name { font-weight: 600; color: var(--navy); }
+    .chevron-cell { width: 20px; text-align: center; }
+    .chevron { display: inline-block; transition: transform 0.15s ease; color: var(--gray); }
+    .chevron.open { transform: rotate(90deg); color: var(--teal); }
+
+    .detail-row td { background: var(--gray-light); padding: 18px 24px; }
+    .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 18px;
+    }
+    .detail-section h4 {
+        margin: 0 0 8px 0;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: var(--navy);
+        border-bottom: 2px solid var(--teal);
+        padding-bottom: 6px;
+    }
+    table.detail-table, table.meta-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+        background: #fff;
+        border-radius: 6px;
+        overflow: hidden;
+    }
+    table.detail-table thead th {
+        background: #eef1f4;
+        color: var(--navy);
+        padding: 6px 8px;
+        text-align: left;
+        font-weight: 600;
+    }
+    table.detail-table tbody td, table.meta-table td {
+        padding: 6px 8px;
+        border-bottom: 1px solid var(--border);
+    }
+    table.meta-table td:first-child { color: var(--gray); width: 55%; }
+    .mono { font-family: 'Consolas', monospace; font-size: 12px; }
+    .mono.small { font-size: 11px; word-break: break-all; }
+    .empty-note { font-size: 12px; color: var(--gray); font-style: italic; }
+
+    .badge {
+        display: inline-block;
+        padding: 3px 9px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .badge-teal { background: var(--teal); color: #fff; }
+    .badge-teal-outline { background: var(--teal-light); color: var(--teal); border: 1px solid var(--teal); }
+    .badge-amber { background: var(--amber); color: #fff; }
+    .badge-amber-outline { background: var(--amber-light); color: var(--amber); border: 1px solid var(--amber); }
+    .badge-navy { background: var(--navy); color: #fff; }
+    .badge-gray { background: var(--gray); color: #fff; }
+    .badge-gray-outline { background: #fff; color: var(--gray); border: 1px solid var(--border); }
+
+    footer { text-align: center; padding: 20px; font-size: 11px; color: var(--gray); }
+</style>
+</head>
+<body>
+
+<header>
+    <a class="back-link" href="index.html">&larr; 전체 클러스터 목록으로</a>
+    <h1>VM Specification Report - WD-HCS-cl01</h1>
+    <p>생성 시각: 2026-07-15 13:52:33 &nbsp;|&nbsp; 데이터 소스: C:\powercli\posco\VM_Spec_Report_20260715_131947 &nbsp;|&nbsp; 총 VM: 58 대</p>
+</header>
+
+<div class="container">
+
+    <div class="kpi-grid">
+        <div class="kpi-card"><div class="value">58</div><div class="label">전체 VM</div></div>
+        <div class="kpi-card"><div class="value">52</div><div class="label">Powered On</div></div>
+        <div class="kpi-card"><div class="value">6</div><div class="label">Powered Off</div></div>
+        <div class="kpi-card"><div class="value">905</div><div class="label">총 vCPU</div></div>
+        <div class="kpi-card"><div class="value">3795 GB</div><div class="label">총 Memory</div></div>
+        <div class="kpi-card amber"><div class="value">0</div><div class="label">RDM 보유 VM</div></div>
+        <div class="kpi-card amber"><div class="value">19</div><div class="label">ISO 마운트 VM</div></div>
+    </div>
+
+    <div class="toolbar">
+        <input type="text" id="searchBox" placeholder="VM 이름 / Host / OS 검색..." onkeyup="applyFilters()">
+        
+        <label>전원 상태</label>
+        <select id="powerFilter" onchange="applyFilters()">
+            <option value="">전체</option>
+            <option value="poweredOn">Powered On</option>
+            <option value="poweredOff">Powered Off</option>
+        </select>
+        <label>RDM</label>
+        <select id="rdmFilter" onchange="applyFilters()">
+            <option value="">전체</option>
+            <option value="True">RDM 있음</option>
+            <option value="False">RDM 없음</option>
+        </select>
+        <label>ISO</label>
+        <select id="isoFilter" onchange="applyFilters()">
+            <option value="">전체</option>
+            <option value="True">마운트됨</option>
+            <option value="False">없음</option>
+        </select>
+        <label>Tools</label>
+        <select id="toolsFilter" onchange="applyFilters()">
+            <option value="">전체</option>
+            <option value="True">업데이트 필요</option>
+            <option value="False">정상</option>
+        </select>
+        <span class="result-count" id="resultCount"></span>
+    </div>
+
+    <table class="main-table">
+        <thead>
+            <tr>
+                <th></th>
+                <th>VM Name</th>
+                <th>Power</th>
+                <th>Guest OS</th>
+                <th>ESXi Host</th>
+                <th>Cluster</th>
+                <th>Topology</th>
+                <th>Memory</th>
+                <th>vNUMA (추정)</th>
+                <th>VM Tools</th>
+                <th>RDM</th>
+                <th>ISO</th>
+            </tr>
+        </thead>
+        <tbody id="vmTableBody">
+<tr class="vm-row" data-row="1" data-search="broadcom-jumphost wd-esxi03.vcf.local wd-hcs-cl01 ubuntu linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(1)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-1">&#9656;</span></td>
+    <td class="vm-name">broadcom-jumphost</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Ubuntu Linux (64-bit)</td>
+    <td>wd-esxi03.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">2 vCPU (1S x 2C)</td>
+    <td class="mono">12 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-1" data-row="1" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>wd-hcs-cl01-vds-01-pg-mgmt</td><td class='mono'>00:50:56:b5:22:95</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>100</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>12448</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="2" data-search="cci-ns-controller-manager-754d944c6-6bfbz wd-esxi02.vcf.local wd-hcs-cl01 vmware crx pod 1 (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(2)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-2">&#9656;</span></td>
+    <td class="vm-name">cci-ns-controller-manager-754d944c6-6bfbz</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>VMware CRX Pod 1 (64-bit)</td>
+    <td>wd-esxi02.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">1 vCPU (1S x 1C)</td>
+    <td class="mono">0.75 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-2" data-row="2" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>pod-default-ee04a6f5_mgn5v</td><td class='mono'>04:50:56:00:68:00</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (2)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>0.25</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>0.55</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 2 (ParaSCSI)</td><td class='mono'>2:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-14</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>13312</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="3" data-search="depot wd-esxi02.vcf.local wd-hcs-cl01 ubuntu linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="True" data-tools="False" onclick="toggleDetail(3)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-3">&#9656;</span></td>
+    <td class="vm-name">depot</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Ubuntu Linux (64-bit)</td>
+    <td>wd-esxi02.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">2 vCPU (1S x 2C)</td>
+    <td class="mono">4 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-amber'>ISO 1</span></td>
+</tr>
+<tr class="detail-row" id="detail-3" data-row="3" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>KHJ-PG-10.100.190.x</td><td class='mono'>00:50:56:b5:79:27</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>1024</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <table class='detail-table'><thead><tr><th>드라이브</th><th>ISO 경로</th><th>연결상태</th></tr></thead><tbody><tr><td>CD/DVD drive 1</td><td class='mono small'>[HCS-TrueNAS-iSCSI] ISO-Archive/Linux/Ubuntu/26.04/ubuntu-26.04-live-server-amd64.iso</td><td><span class='badge badge-gray-outline'>Disconnected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>13322</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="4" data-search="dns_tmp wd-esxi03.vcf.local wd-hcs-cl01 microsoft windows server 2022 (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOff" data-rdm="False" data-iso="True" data-tools="True" onclick="toggleDetail(4)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-4">&#9656;</span></td>
+    <td class="vm-name">dns_tmp</td>
+    <td><span class='badge badge-gray'>poweredOff</span></td>
+    <td>Microsoft Windows Server 2022 (64-bit)</td>
+    <td>wd-esxi03.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">4 vCPU (4S x 1C)</td>
+    <td class="mono">8 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-amber'>toolsNotRunning</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-amber'>ISO 1</span></td>
+</tr>
+<tr class="detail-row" id="detail-4" data-row="4" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>KHJ-PG-10.100.190.x</td><td class='mono'>00:50:56:b5:7f:fb</td><td><span class='badge badge-gray-outline'>Disconnected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>90</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <table class='detail-table'><thead><tr><th>드라이브</th><th>ISO 경로</th><th>연결상태</th></tr></thead><tbody><tr><td>CD/DVD drive 1</td><td class='mono small'>[WD-HCS-cl01-vsan01] ce997a69-ca21-fe2c-d7e1-8c8474cc3840/ko-kr_windows_server_2022_updated_dec_2025_x64_dvd_84450f64.iso</td><td><span class='badge badge-gray-outline'>Disconnected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>13317</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="5" data-search="dns01 wd-esxi03.vcf.local wd-hcs-cl01 microsoft windows server 2022 (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="True" data-tools="True" onclick="toggleDetail(5)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-5">&#9656;</span></td>
+    <td class="vm-name">dns01</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Microsoft Windows Server 2022 (64-bit)</td>
+    <td>wd-esxi03.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">4 vCPU (1S x 4C)</td>
+    <td class="mono">8 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-amber'>toolsOld</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-amber'>ISO 1</span></td>
+</tr>
+<tr class="detail-row" id="detail-5" data-row="5" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>KHJ-PG-10.100.190.x</td><td class='mono'>00:50:56:b5:7a:7e</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>90</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <table class='detail-table'><thead><tr><th>드라이브</th><th>ISO 경로</th><th>연결상태</th></tr></thead><tbody><tr><td>CD/DVD drive 1</td><td class='mono small'>[WD-HCS-cl01-vsan01] ce997a69-ca21-fe2c-d7e1-8c8474cc3840/ko-kr_windows_server_2022_updated_dec_2025_x64_dvd_84450f64.iso</td><td><span class='badge badge-amber'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>13317</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="6" data-search="harbor wd-esxi03.vcf.local wd-hcs-cl01 ubuntu linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="True" data-tools="False" onclick="toggleDetail(6)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-6">&#9656;</span></td>
+    <td class="vm-name">harbor</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Ubuntu Linux (64-bit)</td>
+    <td>wd-esxi03.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">4 vCPU (1S x 4C)</td>
+    <td class="mono">8 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-amber'>ISO 1</span></td>
+</tr>
+<tr class="detail-row" id="detail-6" data-row="6" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>KHJ-PG-10.100.190.x</td><td class='mono'>00:50:56:b5:b2:41</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>1024</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <table class='detail-table'><thead><tr><th>드라이브</th><th>ISO 경로</th><th>연결상태</th></tr></thead><tbody><tr><td>CD/DVD drive 1</td><td class='mono small'>[HCS-TrueNAS-iSCSI] ISO-Archive/Linux/Ubuntu/26.04/ubuntu-26.04-live-server-amd64.iso</td><td><span class='badge badge-gray-outline'>Disconnected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>13322</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="7" data-search="hkmg-dns-127.x wd-esxi02.vcf.local wd-hcs-cl01 rocky linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="True" data-tools="False" onclick="toggleDetail(7)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-7">&#9656;</span></td>
+    <td class="vm-name">hkmg-dns-127.X</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Rocky Linux (64-bit)</td>
+    <td>wd-esxi02.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">2 vCPU (1S x 2C)</td>
+    <td class="mono">8 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-amber'>ISO 1</span></td>
+</tr>
+<tr class="detail-row" id="detail-7" data-row="7" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>KSB-PG-10.100.127.x</td><td class='mono'>00:50:56:b5:46:96</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>16</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <table class='detail-table'><thead><tr><th>드라이브</th><th>ISO 경로</th><th>연결상태</th></tr></thead><tbody><tr><td>CD/DVD drive 1</td><td class='mono small'>[HCS-TrueNAS-iSCSI] ISO-Archive/Linux/Rocky/8/Rocky-8.10-x86_64-dvd1.iso</td><td><span class='badge badge-gray-outline'>Disconnected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>12389</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="8" data-search="hkmg-dns-ntp-128.x wd-esxi04.vcf.local wd-hcs-cl01 rocky linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(8)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-8">&#9656;</span></td>
+    <td class="vm-name">hkmg-dns-ntp-128.x</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Rocky Linux (64-bit)</td>
+    <td>wd-esxi04.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">1 vCPU (1S x 1C)</td>
+    <td class="mono">2 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-8" data-row="8" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>KSB-PG-10.100.128.x</td><td class='mono'>00:50:56:b5:9b:b9</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>20</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-21</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>12389</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="9" data-search="hkmg-iscsi wd-esxi04.vcf.local wd-hcs-cl01 rocky linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(9)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-9">&#9656;</span></td>
+    <td class="vm-name">hkmg-iscsi</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Rocky Linux (64-bit)</td>
+    <td>wd-esxi04.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">8 vCPU (1S x 8C)</td>
+    <td class="mono">16 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-9" data-row="9" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>KSB-PG-10.100.129.x</td><td class='mono'>00:50:56:b5:86:3a</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (2)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>50</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>2048</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:1</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-21</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>12389</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="10" data-search="hkmg-nfs wd-esxi03.vcf.local wd-hcs-cl01 rocky linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(10)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-10">&#9656;</span></td>
+    <td class="vm-name">hkmg-nfs</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Rocky Linux (64-bit)</td>
+    <td>wd-esxi03.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">8 vCPU (1S x 8C)</td>
+    <td class="mono">16 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-10" data-row="10" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>KSB-PG-10.100.128.x</td><td class='mono'>00:50:56:b5:aa:d6</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (2)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>50</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>3072</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:1</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-21</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>12389</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="11" data-search="hkmg-vcf-depot wd-esxi04.vcf.local wd-hcs-cl01 rocky linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(11)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-11">&#9656;</span></td>
+    <td class="vm-name">hkmg-vcf-depot</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Rocky Linux (64-bit)</td>
+    <td>wd-esxi04.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">2 vCPU (1S x 2C)</td>
+    <td class="mono">4 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-11" data-row="11" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>KSB-PG-10.100.128.x</td><td class='mono'>00:50:56:b5:bc:bf</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (2)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>20</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>500</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:1</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-21</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>12389</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="12" data-search="hkmg-vcf-test-vsan-esx01-127.x wd-esxi02.vcf.local wd-hcs-cl01 vmware esxi 8" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(12)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-12">&#9656;</span></td>
+    <td class="vm-name">hkmg-vcf-test-vsan-esx01-127.X</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>VMware ESXi 8</td>
+    <td>wd-esxi02.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">24 vCPU (1S x 24C)</td>
+    <td class="mono">160 GB</td>
+    <td><span class='badge badge-navy'>Likely Enabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-12" data-row="12" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (4)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>KSB-PG-10.100.127.x</td><td class='mono'>00:50:56:b5:ab:6c</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 2</td><td>Vmxnet3</td><td>KSB-PG-10.100.127.x</td><td class='mono'>00:50:56:b5:8d:64</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 3</td><td>Vmxnet3</td><td>KSB-PG-10.100.127.x</td><td class='mono'>00:50:56:b5:c9:11</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 4</td><td>Vmxnet3</td><td>KSB-PG-10.100.127.x</td><td class='mono'>00:50:56:b5:e0:15</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (2)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>200</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>500</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>13344</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="13" data-search="hkmg-vcf-test-vsan-esx02-127.x wd-esxi03.vcf.local wd-hcs-cl01 vmware esxi 8" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(13)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-13">&#9656;</span></td>
+    <td class="vm-name">hkmg-vcf-test-vsan-esx02-127.X</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>VMware ESXi 8</td>
+    <td>wd-esxi03.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">24 vCPU (1S x 24C)</td>
+    <td class="mono">160 GB</td>
+    <td><span class='badge badge-navy'>Likely Enabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-13" data-row="13" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (4)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>KSB-PG-10.100.127.x</td><td class='mono'>00:50:56:b5:73:15</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 2</td><td>Vmxnet3</td><td>KSB-PG-10.100.127.x</td><td class='mono'>00:50:56:b5:ef:d3</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 3</td><td>Vmxnet3</td><td>KSB-PG-10.100.127.x</td><td class='mono'>00:50:56:b5:cb:f7</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 4</td><td>Vmxnet3</td><td>KSB-PG-10.100.127.x</td><td class='mono'>00:50:56:b5:dc:bd</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (2)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>200</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>500</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>13344</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="14" data-search="hkmg-vcf-test-vsan-esx03-127.x wd-esxi01.vcf.local wd-hcs-cl01 vmware esxi 8" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(14)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-14">&#9656;</span></td>
+    <td class="vm-name">hkmg-vcf-test-vsan-esx03-127.X</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>VMware ESXi 8</td>
+    <td>wd-esxi01.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">24 vCPU (1S x 24C)</td>
+    <td class="mono">160 GB</td>
+    <td><span class='badge badge-navy'>Likely Enabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-14" data-row="14" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (4)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>KSB-PG-10.100.127.x</td><td class='mono'>00:50:56:b5:7f:b6</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 2</td><td>Vmxnet3</td><td>KSB-PG-10.100.127.x</td><td class='mono'>00:50:56:b5:56:83</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 3</td><td>Vmxnet3</td><td>KSB-PG-10.100.127.x</td><td class='mono'>00:50:56:b5:98:31</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 4</td><td>Vmxnet3</td><td>KSB-PG-10.100.127.x</td><td class='mono'>00:50:56:b5:58:2f</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (2)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>200</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>500</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>13344</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="15" data-search="hkmg-vcf-test-vsan-esx04-127.x wd-esxi01.vcf.local wd-hcs-cl01 vmware esxi 8" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(15)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-15">&#9656;</span></td>
+    <td class="vm-name">hkmg-vcf-test-vsan-esx04-127.X</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>VMware ESXi 8</td>
+    <td>wd-esxi01.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">24 vCPU (1S x 24C)</td>
+    <td class="mono">160 GB</td>
+    <td><span class='badge badge-navy'>Likely Enabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-15" data-row="15" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (4)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>KSB-PG-10.100.127.x</td><td class='mono'>00:50:56:b5:f3:cf</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 2</td><td>Vmxnet3</td><td>KSB-PG-10.100.127.x</td><td class='mono'>00:50:56:b5:38:ba</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 3</td><td>Vmxnet3</td><td>KSB-PG-10.100.127.x</td><td class='mono'>00:50:56:b5:6f:52</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 4</td><td>Vmxnet3</td><td>KSB-PG-10.100.127.x</td><td class='mono'>00:50:56:b5:ed:7a</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (2)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>200</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>500</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>13344</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="16" data-search="hkmg-vvf-test-nfs-esx01-128.x wd-esxi04.vcf.local wd-hcs-cl01 vmware esxi 8" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="True" data-tools="False" onclick="toggleDetail(16)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-16">&#9656;</span></td>
+    <td class="vm-name">hkmg-vvf-test-nfs-esx01-128.X</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>VMware ESXi 8</td>
+    <td>wd-esxi04.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">36 vCPU (2S x 18C)</td>
+    <td class="mono">256 GB</td>
+    <td><span class='badge badge-navy'>Likely Enabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-amber'>ISO 1</span></td>
+</tr>
+<tr class="detail-row" id="detail-16" data-row="16" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (2)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>KSB-PG-10.100.128.x</td><td class='mono'>00:50:56:b5:ff:d4</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 2</td><td>Vmxnet3</td><td>KSB-PG-10.100.128.x</td><td class='mono'>00:50:56:b5:d6:fe</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (2)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>200</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>200</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:1</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <table class='detail-table'><thead><tr><th>드라이브</th><th>ISO 경로</th><th>연결상태</th></tr></thead><tbody><tr><td>CD/DVD drive 1</td><td class='mono small'>[HCS-TrueNAS-iSCSI] ISO-Archive/VMware/ESXi/8/VMware-VMvisor-Installer-8.0U3g-24859861.x86_64.iso</td><td><span class='badge badge-gray-outline'>Disconnected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>13344</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="17" data-search="hkmg-vvf-test-nfs-esx02-128.x wd-esxi01.vcf.local wd-hcs-cl01 vmware esxi 8" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="True" data-tools="False" onclick="toggleDetail(17)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-17">&#9656;</span></td>
+    <td class="vm-name">hkmg-vvf-test-nfs-esx02-128.X</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>VMware ESXi 8</td>
+    <td>wd-esxi01.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">36 vCPU (2S x 18C)</td>
+    <td class="mono">256 GB</td>
+    <td><span class='badge badge-navy'>Likely Enabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-amber'>ISO 1</span></td>
+</tr>
+<tr class="detail-row" id="detail-17" data-row="17" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (2)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>KSB-PG-10.100.128.x</td><td class='mono'>00:50:56:b5:69:28</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 2</td><td>Vmxnet3</td><td>KSB-PG-10.100.128.x</td><td class='mono'>00:50:56:b5:85:e1</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (2)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>200</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>200</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:1</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <table class='detail-table'><thead><tr><th>드라이브</th><th>ISO 경로</th><th>연결상태</th></tr></thead><tbody><tr><td>CD/DVD drive 1</td><td class='mono small'>[HCS-TrueNAS-iSCSI] ISO-Archive/VMware/ESXi/8/VMware-VMvisor-Installer-8.0U3g-24859861.x86_64.iso</td><td><span class='badge badge-gray-outline'>Disconnected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>13344</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="18" data-search="hmgdnsntp wd-esxi03.vcf.local wd-hcs-cl01 microsoft windows server 2019 (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="True" data-tools="True" onclick="toggleDetail(18)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-18">&#9656;</span></td>
+    <td class="vm-name">HMGDNSNTP</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Microsoft Windows Server 2019 (64-bit)</td>
+    <td>wd-esxi03.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">2 vCPU (1S x 2C)</td>
+    <td class="mono">4 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-amber'>toolsOld</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-amber'>ISO 1</span></td>
+</tr>
+<tr class="detail-row" id="detail-18" data-row="18" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>HMG-PG-10.100.232.x</td><td class='mono'>00:50:56:b5:b9:61</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>60</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (LsiLogicSAS)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <table class='detail-table'><thead><tr><th>드라이브</th><th>ISO 경로</th><th>연결상태</th></tr></thead><tbody><tr><td>CD/DVD drive 1</td><td class='mono small'>[HCS-TrueNAS-iSCSI] ISO-Archive/Windows/Windows Server 2019/ko-kr_windows_server_2019_x64_dvd_84101c0a.iso</td><td><span class='badge badge-amber'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>13317</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="19" data-search="kdw-depot wd-esxi03.vcf.local wd-hcs-cl01 ubuntu linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="True" data-tools="False" onclick="toggleDetail(19)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-19">&#9656;</span></td>
+    <td class="vm-name">kdw-depot</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Ubuntu Linux (64-bit)</td>
+    <td>wd-esxi03.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">8 vCPU (1S x 8C)</td>
+    <td class="mono">8 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-amber'>ISO 1</span></td>
+</tr>
+<tr class="detail-row" id="detail-19" data-row="19" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>kdw-pg-trunk</td><td class='mono'>00:50:56:b5:cc:ec</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (3)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>25</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>100</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:1</td><td>-</td></tr><tr><td>Hard disk 3</td><td>100</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <table class='detail-table'><thead><tr><th>드라이브</th><th>ISO 경로</th><th>연결상태</th></tr></thead><tbody><tr><td>CD/DVD drive 1</td><td class='mono small'>[WD-HCS-cl01-vsan01] ce997a69-ca21-fe2c-d7e1-8c8474cc3840/ubuntu-22.04.5-live-server-amd64.iso</td><td><span class='badge badge-amber'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>12389</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="20" data-search="kdw-wd-jumphost wd-esxi03.vcf.local wd-hcs-cl01 ubuntu linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(20)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-20">&#9656;</span></td>
+    <td class="vm-name">kdw-wd-jumphost</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Ubuntu Linux (64-bit)</td>
+    <td>wd-esxi03.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">4 vCPU (1S x 4C)</td>
+    <td class="mono">8 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-20" data-row="20" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (3)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>wd-hcs-cl01-vds-01-pg-mgmt</td><td class='mono'>00:50:56:b5:c0:0a</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 2</td><td>Vmxnet3</td><td>kdw-pg-trunk</td><td class='mono'>00:50:56:b5:e4:2c</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 3</td><td>Vmxnet3</td><td>test-seg</td><td class='mono'>00:50:56:b5:1b:ff</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (2)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>20</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>50</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:1</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>12448</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="21" data-search="khj_dns wd-esxi04.vcf.local wd-hcs-cl01 microsoft windows server 2022 (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOff" data-rdm="False" data-iso="True" data-tools="True" onclick="toggleDetail(21)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-21">&#9656;</span></td>
+    <td class="vm-name">khj_dns</td>
+    <td><span class='badge badge-gray'>poweredOff</span></td>
+    <td>Microsoft Windows Server 2022 (64-bit)</td>
+    <td>wd-esxi04.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">4 vCPU (4S x 1C)</td>
+    <td class="mono">8 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-amber'>toolsNotRunning</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-amber'>ISO 1</span></td>
+</tr>
+<tr class="detail-row" id="detail-21" data-row="21" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>KHJ-PG-10.100.190.x</td><td class='mono'>00:50:56:b5:b1:ce</td><td><span class='badge badge-gray-outline'>Disconnected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>90</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <table class='detail-table'><thead><tr><th>드라이브</th><th>ISO 경로</th><th>연결상태</th></tr></thead><tbody><tr><td>CD/DVD drive 1</td><td class='mono small'>[WD-HCS-cl01-vsan01] ce997a69-ca21-fe2c-d7e1-8c8474cc3840/ko-kr_windows_server_2022_updated_dec_2025_x64_dvd_84450f64.iso</td><td><span class='badge badge-gray-outline'>Disconnected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>13317</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="22" data-search="nc-dns wd-esxi03.vcf.local wd-hcs-cl01 microsoft windows server 2025 (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="True" onclick="toggleDetail(22)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-22">&#9656;</span></td>
+    <td class="vm-name">nc-dns</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Microsoft Windows Server 2025 (64-bit)</td>
+    <td>wd-esxi03.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">2 vCPU (1S x 2C)</td>
+    <td class="mono">4 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-amber'>toolsOld</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-22" data-row="22" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>nc-ids-10-100-50</td><td class='mono'>00:50:56:b5:23:2e</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>90</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-21</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>13317</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="23" data-search="nc-esxi01 wd-esxi02.vcf.local wd-hcs-cl01 vmware esxi 9.0 or later" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(23)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-23">&#9656;</span></td>
+    <td class="vm-name">nc-esxi01</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>VMware ESXi 9.0 or later</td>
+    <td>wd-esxi02.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">64 vCPU (2S x 32C)</td>
+    <td class="mono">256 GB</td>
+    <td><span class='badge badge-navy'>Likely Enabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-23" data-row="23" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (5)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>kdw-pg-trunk</td><td class='mono'>00:50:56:0a:50:11</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 2</td><td>Vmxnet3</td><td>kdw-pg-trunk</td><td class='mono'>00:50:56:b5:40:d6</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 3</td><td>Vmxnet3</td><td>kdw-pg-trunk</td><td class='mono'>00:50:56:b5:3d:37</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 4</td><td>Vmxnet3</td><td>kdw-pg-trunk</td><td class='mono'>00:50:56:b5:ac:fa</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 5</td><td>Vmxnet3</td><td>kdw-pg-trunk</td><td class='mono'>00:50:56:b5:11:5b</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (4)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>100</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>200</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:1</td><td>-</td></tr><tr><td>Hard disk 3</td><td>1024</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:2</td><td>-</td></tr><tr><td>Hard disk 4</td><td>500</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:3</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>13344</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="24" data-search="nc-esxi02 wd-esxi04.vcf.local wd-hcs-cl01 vmware esxi 9.0 or later" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(24)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-24">&#9656;</span></td>
+    <td class="vm-name">nc-esxi02</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>VMware ESXi 9.0 or later</td>
+    <td>wd-esxi04.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">64 vCPU (2S x 32C)</td>
+    <td class="mono">256 GB</td>
+    <td><span class='badge badge-navy'>Likely Enabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-24" data-row="24" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (5)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>kdw-pg-trunk</td><td class='mono'>00:50:56:0a:50:12</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 2</td><td>Vmxnet3</td><td>kdw-pg-trunk</td><td class='mono'>00:50:56:b5:5b:5d</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 3</td><td>Vmxnet3</td><td>kdw-pg-trunk</td><td class='mono'>00:50:56:b5:e0:65</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 4</td><td>Vmxnet3</td><td>kdw-pg-trunk</td><td class='mono'>00:50:56:b5:0e:0a</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 5</td><td>Vmxnet3</td><td>kdw-pg-trunk</td><td class='mono'>00:50:56:b5:00:54</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (3)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>100</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>200</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:1</td><td>-</td></tr><tr><td>Hard disk 3</td><td>1024</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:2</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>13344</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="25" data-search="nc-esxi03 wd-esxi01.vcf.local wd-hcs-cl01 vmware esxi 9.0 or later" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(25)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-25">&#9656;</span></td>
+    <td class="vm-name">nc-esxi03</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>VMware ESXi 9.0 or later</td>
+    <td>wd-esxi01.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">64 vCPU (2S x 32C)</td>
+    <td class="mono">256 GB</td>
+    <td><span class='badge badge-navy'>Likely Enabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-25" data-row="25" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (5)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>kdw-pg-trunk</td><td class='mono'>00:50:56:0a:50:13</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 2</td><td>Vmxnet3</td><td>kdw-pg-trunk</td><td class='mono'>00:50:56:b5:40:a3</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 3</td><td>Vmxnet3</td><td>kdw-pg-trunk</td><td class='mono'>00:50:56:b5:68:90</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 4</td><td>Vmxnet3</td><td>kdw-pg-trunk</td><td class='mono'>00:50:56:b5:c9:b8</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 5</td><td>Vmxnet3</td><td>kdw-pg-trunk</td><td class='mono'>00:50:56:b5:dd:97</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (3)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>100</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>200</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:1</td><td>-</td></tr><tr><td>Hard disk 3</td><td>1024</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:2</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>13344</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="26" data-search="nc-esxi04 wd-esxi03.vcf.local wd-hcs-cl01 vmware esxi 9.0 or later" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(26)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-26">&#9656;</span></td>
+    <td class="vm-name">nc-esxi04</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>VMware ESXi 9.0 or later</td>
+    <td>wd-esxi03.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">64 vCPU (2S x 32C)</td>
+    <td class="mono">256 GB</td>
+    <td><span class='badge badge-navy'>Likely Enabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-26" data-row="26" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (5)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>kdw-pg-trunk</td><td class='mono'>00:50:56:0a:50:14</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 2</td><td>Vmxnet3</td><td>kdw-pg-trunk</td><td class='mono'>00:50:56:b5:8a:95</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 3</td><td>Vmxnet3</td><td>kdw-pg-trunk</td><td class='mono'>00:50:56:b5:3a:2b</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 4</td><td>Vmxnet3</td><td>kdw-pg-trunk</td><td class='mono'>00:50:56:b5:06:76</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 5</td><td>Vmxnet3</td><td>kdw-pg-trunk</td><td class='mono'>00:50:56:b5:f9:e8</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (3)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>100</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>200</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:1</td><td>-</td></tr><tr><td>Hard disk 3</td><td>1024</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:2</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>13344</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="27" data-search="nc-nfs wd-esxi03.vcf.local wd-hcs-cl01 ubuntu linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="True" data-tools="False" onclick="toggleDetail(27)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-27">&#9656;</span></td>
+    <td class="vm-name">nc-nfs</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Ubuntu Linux (64-bit)</td>
+    <td>wd-esxi03.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">4 vCPU (1S x 4C)</td>
+    <td class="mono">8 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-amber'>ISO 1</span></td>
+</tr>
+<tr class="detail-row" id="detail-27" data-row="27" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>nc-ids-10-100-50</td><td class='mono'>00:50:56:b5:1c:5f</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (2)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>20</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>1024</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:1</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <table class='detail-table'><thead><tr><th>드라이브</th><th>ISO 경로</th><th>연결상태</th></tr></thead><tbody><tr><td>CD/DVD drive 1</td><td class='mono small'>[HCS-TrueNAS-iSCSI] ISO-Archive/Linux/Ubuntu/22.04/Server/ubuntu-22.04.2-live-server-amd64.iso</td><td><span class='badge badge-gray-outline'>Disconnected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>12389</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="28" data-search="shj-centos wd-esxi02.vcf.local wd-hcs-cl01 centos 7 (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOff" data-rdm="False" data-iso="False" data-tools="True" onclick="toggleDetail(28)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-28">&#9656;</span></td>
+    <td class="vm-name">SHJ-Centos</td>
+    <td><span class='badge badge-gray'>poweredOff</span></td>
+    <td>CentOS 7 (64-bit)</td>
+    <td>wd-esxi02.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">2 vCPU (2S x 1C)</td>
+    <td class="mono">4 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-amber'>toolsNotRunning</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-28" data-row="28" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>SHJ-PG-10.100.204.x</td><td class='mono'>00:50:56:b5:5e:07</td><td><span class='badge badge-gray-outline'>Disconnected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>50</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-21</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>11269</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="29" data-search="supervisorcontrolplanevm (1) wd-esxi01.vcf.local wd-hcs-cl01 vmware photon os (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(29)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-29">&#9656;</span></td>
+    <td class="vm-name">SupervisorControlPlaneVM (1)</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>VMware Photon OS (64-bit)</td>
+    <td>wd-esxi01.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">4 vCPU (4S x 1C)</td>
+    <td class="mono">16 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-29" data-row="29" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (2)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>WSN-PG-MGMT-10.100.197.x</td><td class='mono'>00:50:56:b5:2a:9a</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 2</td><td>Vmxnet3</td><td>vm-default-96f6dc1f_oit44</td><td class='mono'>04:50:56:00:28:00</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>48</td><td><span class='badge badge-gray-outline'>Thick Lazy Zeroed</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-20</td></tr>
+                    <tr><td>CPU Hot Add</td><td>True</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>True</td></tr>
+                    <tr><td>VM Tools Version</td><td>13312</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="30" data-search="supervisorcontrolplanevm (2) wd-esxi04.vcf.local wd-hcs-cl01 vmware photon os (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(30)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-30">&#9656;</span></td>
+    <td class="vm-name">SupervisorControlPlaneVM (2)</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>VMware Photon OS (64-bit)</td>
+    <td>wd-esxi04.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">4 vCPU (4S x 1C)</td>
+    <td class="mono">16 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-30" data-row="30" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (2)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>WSN-PG-MGMT-10.100.197.x</td><td class='mono'>00:50:56:b5:de:5f</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 2</td><td>Vmxnet3</td><td>vm-default-96f6dc1f_oit44</td><td class='mono'>04:50:56:00:dc:00</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>48</td><td><span class='badge badge-gray-outline'>Thick Lazy Zeroed</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-20</td></tr>
+                    <tr><td>CPU Hot Add</td><td>True</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>True</td></tr>
+                    <tr><td>VM Tools Version</td><td>13312</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="31" data-search="supervisorcontrolplanevm (3) wd-esxi03.vcf.local wd-hcs-cl01 vmware photon os (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(31)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-31">&#9656;</span></td>
+    <td class="vm-name">SupervisorControlPlaneVM (3)</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>VMware Photon OS (64-bit)</td>
+    <td>wd-esxi03.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">4 vCPU (4S x 1C)</td>
+    <td class="mono">16 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-31" data-row="31" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (2)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>WSN-PG-MGMT-10.100.197.x</td><td class='mono'>00:50:56:b5:b9:fe</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 2</td><td>Vmxnet3</td><td>vm-default-96f6dc1f_oit44</td><td class='mono'>04:50:56:00:28:01</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>48</td><td><span class='badge badge-gray-outline'>Thick Lazy Zeroed</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-20</td></tr>
+                    <tr><td>CPU Hot Add</td><td>True</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>True</td></tr>
+                    <tr><td>VM Tools Version</td><td>13312</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="32" data-search="test-dns-129.xx wd-esxi04.vcf.local wd-hcs-cl01 rocky linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(32)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-32">&#9656;</span></td>
+    <td class="vm-name">test-dns-129.xx</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Rocky Linux (64-bit)</td>
+    <td>wd-esxi04.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">1 vCPU (1S x 1C)</td>
+    <td class="mono">2 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-32" data-row="32" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>KSB-PG-10.100.129.x</td><td class='mono'>00:50:56:b5:88:4c</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>25</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-21</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>12389</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="33" data-search="vcf9esxi01 wd-esxi01.vcf.local wd-hcs-cl01 vmware esxi 9.0 or later" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="True" data-tools="False" onclick="toggleDetail(33)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-33">&#9656;</span></td>
+    <td class="vm-name">vcf9esxi01</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>VMware ESXi 9.0 or later</td>
+    <td>wd-esxi01.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">64 vCPU (2S x 32C)</td>
+    <td class="mono">192 GB</td>
+    <td><span class='badge badge-navy'>Likely Enabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-amber'>ISO 1</span></td>
+</tr>
+<tr class="detail-row" id="detail-33" data-row="33" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (5)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>KHJ-PG-Trunk</td><td class='mono'>00:50:56:b5:ef:9e</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 2</td><td>Vmxnet3</td><td>KHJ-PG-Trunk</td><td class='mono'>00:50:56:b5:b9:33</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 3</td><td>Vmxnet3</td><td>KHJ-PG-Trunk</td><td class='mono'>00:50:56:b5:a9:43</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 4</td><td>Vmxnet3</td><td>KHJ-PG-Trunk</td><td class='mono'>00:50:56:b5:ed:f7</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 5</td><td>Vmxnet3</td><td>KHJ-PG-Trunk</td><td class='mono'>00:50:56:b5:5d:55</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (6)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>300</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>1024</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:0</td><td>-</td></tr><tr><td>Hard disk 3</td><td>1024</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:1</td><td>-</td></tr><tr><td>Hard disk 4</td><td>1024</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:2</td><td>-</td></tr><tr><td>Hard disk 5</td><td>1024</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:3</td><td>-</td></tr><tr><td>Hard disk 6</td><td>100</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:4</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <table class='detail-table'><thead><tr><th>드라이브</th><th>ISO 경로</th><th>연결상태</th></tr></thead><tbody><tr><td>CD/DVD drive 1</td><td class='mono small'>[WD-HCS-cl01-vsan01] ce997a69-ca21-fe2c-d7e1-8c8474cc3840/VMware-ESXi-9.1.0-25370933-HPE-910.0.0.12.3.0.32-may2026.iso</td><td><span class='badge badge-amber'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>13344</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="34" data-search="vcf9esxi02 wd-esxi02.vcf.local wd-hcs-cl01 vmware esxi 9.0 or later" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="True" data-tools="False" onclick="toggleDetail(34)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-34">&#9656;</span></td>
+    <td class="vm-name">vcf9esxi02</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>VMware ESXi 9.0 or later</td>
+    <td>wd-esxi02.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">64 vCPU (2S x 32C)</td>
+    <td class="mono">192 GB</td>
+    <td><span class='badge badge-navy'>Likely Enabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-amber'>ISO 1</span></td>
+</tr>
+<tr class="detail-row" id="detail-34" data-row="34" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (5)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>KHJ-PG-Trunk</td><td class='mono'>00:50:56:b5:1e:65</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 2</td><td>Vmxnet3</td><td>KHJ-PG-Trunk</td><td class='mono'>00:50:56:b5:cf:f2</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 3</td><td>Vmxnet3</td><td>KHJ-PG-Trunk</td><td class='mono'>00:50:56:b5:af:6b</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 4</td><td>Vmxnet3</td><td>KHJ-PG-Trunk</td><td class='mono'>00:50:56:b5:be:4c</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 5</td><td>Vmxnet3</td><td>KHJ-PG-Trunk</td><td class='mono'>00:50:56:b5:01:c6</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (6)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>100</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>1024</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:0</td><td>-</td></tr><tr><td>Hard disk 3</td><td>1024</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:1</td><td>-</td></tr><tr><td>Hard disk 4</td><td>1024</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:2</td><td>-</td></tr><tr><td>Hard disk 5</td><td>1024</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:3</td><td>-</td></tr><tr><td>Hard disk 6</td><td>100</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:4</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <table class='detail-table'><thead><tr><th>드라이브</th><th>ISO 경로</th><th>연결상태</th></tr></thead><tbody><tr><td>CD/DVD drive 1</td><td class='mono small'>[WD-HCS-cl01-vsan01] ce997a69-ca21-fe2c-d7e1-8c8474cc3840/VMware-ESXi-9.1.0-25370933-HPE-910.0.0.12.3.0.32-may2026.iso</td><td><span class='badge badge-amber'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>13344</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="35" data-search="vcf9esxi03 wd-esxi03.vcf.local wd-hcs-cl01 vmware esxi 9.0 or later" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="True" data-tools="False" onclick="toggleDetail(35)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-35">&#9656;</span></td>
+    <td class="vm-name">vcf9esxi03</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>VMware ESXi 9.0 or later</td>
+    <td>wd-esxi03.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">64 vCPU (2S x 32C)</td>
+    <td class="mono">192 GB</td>
+    <td><span class='badge badge-navy'>Likely Enabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-amber'>ISO 1</span></td>
+</tr>
+<tr class="detail-row" id="detail-35" data-row="35" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (5)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>KHJ-PG-Trunk</td><td class='mono'>00:50:56:b5:c4:fa</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 2</td><td>Vmxnet3</td><td>KHJ-PG-Trunk</td><td class='mono'>00:50:56:b5:48:7a</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 3</td><td>Vmxnet3</td><td>KHJ-PG-Trunk</td><td class='mono'>00:50:56:b5:c2:d5</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 4</td><td>Vmxnet3</td><td>KHJ-PG-Trunk</td><td class='mono'>00:50:56:b5:8c:f1</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 5</td><td>Vmxnet3</td><td>KHJ-PG-Trunk</td><td class='mono'>00:50:56:b5:74:f7</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (6)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>100</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>1024</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:0</td><td>-</td></tr><tr><td>Hard disk 3</td><td>1024</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:1</td><td>-</td></tr><tr><td>Hard disk 4</td><td>1024</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:2</td><td>-</td></tr><tr><td>Hard disk 5</td><td>1024</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:3</td><td>-</td></tr><tr><td>Hard disk 6</td><td>100</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:4</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <table class='detail-table'><thead><tr><th>드라이브</th><th>ISO 경로</th><th>연결상태</th></tr></thead><tbody><tr><td>CD/DVD drive 1</td><td class='mono small'>[WD-HCS-cl01-vsan01] ce997a69-ca21-fe2c-d7e1-8c8474cc3840/VMware-ESXi-9.1.0-25370933-HPE-910.0.0.12.3.0.32-may2026.iso</td><td><span class='badge badge-amber'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>13344</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="36" data-search="vcf9esxi04 wd-esxi04.vcf.local wd-hcs-cl01 vmware esxi 9.0 or later" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="True" data-tools="False" onclick="toggleDetail(36)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-36">&#9656;</span></td>
+    <td class="vm-name">vcf9esxi04</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>VMware ESXi 9.0 or later</td>
+    <td>wd-esxi04.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">64 vCPU (2S x 32C)</td>
+    <td class="mono">192 GB</td>
+    <td><span class='badge badge-navy'>Likely Enabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-amber'>ISO 1</span></td>
+</tr>
+<tr class="detail-row" id="detail-36" data-row="36" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (5)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>KHJ-PG-Trunk</td><td class='mono'>00:50:56:b5:73:f6</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 2</td><td>Vmxnet3</td><td>KHJ-PG-Trunk</td><td class='mono'>00:50:56:b5:df:f5</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 3</td><td>Vmxnet3</td><td>KHJ-PG-Trunk</td><td class='mono'>00:50:56:b5:93:e1</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 4</td><td>Vmxnet3</td><td>KHJ-PG-Trunk</td><td class='mono'>00:50:56:b5:78:18</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 5</td><td>Vmxnet3</td><td>KHJ-PG-Trunk</td><td class='mono'>00:50:56:b5:33:ff</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (6)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>100</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>1024</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:0</td><td>-</td></tr><tr><td>Hard disk 3</td><td>1024</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:1</td><td>-</td></tr><tr><td>Hard disk 4</td><td>1024</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:2</td><td>-</td></tr><tr><td>Hard disk 5</td><td>1024</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:3</td><td>-</td></tr><tr><td>Hard disk 6</td><td>100</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:4</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <table class='detail-table'><thead><tr><th>드라이브</th><th>ISO 경로</th><th>연결상태</th></tr></thead><tbody><tr><td>CD/DVD drive 1</td><td class='mono small'>[WD-HCS-cl01-vsan01] ce997a69-ca21-fe2c-d7e1-8c8474cc3840/VMware-ESXi-9.1.0-25370933-HPE-910.0.0.12.3.0.32-may2026.iso</td><td><span class='badge badge-gray-outline'>Disconnected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>13344</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="37" data-search="vcf-cp wd-esxi03.vcf.local wd-hcs-cl01 other 3.x or later linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(37)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-37">&#9656;</span></td>
+    <td class="vm-name">VCF-CP</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Other 3.x or later Linux (64-bit)</td>
+    <td>wd-esxi03.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">2 vCPU (2S x 1C)</td>
+    <td class="mono">8 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-37" data-row="37" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>MGMT-PG-172.20.10.x</td><td class='mono'>00:50:56:b5:21:87</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (3)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>20</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>120</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:1</td><td>-</td></tr><tr><td>Hard disk 3</td><td>4</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:2</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-11</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>12448</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="38" data-search="vsan file service node (1) wd-esxi01.vcf.local wd-hcs-cl01 other 3.x linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(38)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-38">&#9656;</span></td>
+    <td class="vm-name">vSAN File Service Node (1)</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Other 3.x Linux (64-bit)</td>
+    <td>wd-esxi01.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">4 vCPU (4S x 1C)</td>
+    <td class="mono">8 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-38" data-row="38" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>kbbank-nfs</td><td class='mono'>00:50:56:b5:3d:1d</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (3)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>48</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (LsiLogic)</td><td class='mono'>0:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>0.06</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (LsiLogic)</td><td class='mono'>0:1</td><td>-</td></tr><tr><td>Hard disk 3</td><td>30</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (LsiLogic)</td><td class='mono'>0:2</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-21</td></tr>
+                    <tr><td>CPU Hot Add</td><td>True</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>True</td></tr>
+                    <tr><td>Memory Hot Add</td><td>True</td></tr>
+                    <tr><td>VM Tools Version</td><td>13312</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="39" data-search="vsan file service node (2) wd-esxi02.vcf.local wd-hcs-cl01 other 3.x linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(39)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-39">&#9656;</span></td>
+    <td class="vm-name">vSAN File Service Node (2)</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Other 3.x Linux (64-bit)</td>
+    <td>wd-esxi02.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">4 vCPU (4S x 1C)</td>
+    <td class="mono">8 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-39" data-row="39" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>kbbank-nfs</td><td class='mono'>00:50:56:b5:71:33</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (3)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>48</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (LsiLogic)</td><td class='mono'>0:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>0.06</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (LsiLogic)</td><td class='mono'>0:1</td><td>-</td></tr><tr><td>Hard disk 3</td><td>30</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (LsiLogic)</td><td class='mono'>0:2</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-21</td></tr>
+                    <tr><td>CPU Hot Add</td><td>True</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>True</td></tr>
+                    <tr><td>Memory Hot Add</td><td>True</td></tr>
+                    <tr><td>VM Tools Version</td><td>13312</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="40" data-search="vsan file service node (3) wd-esxi04.vcf.local wd-hcs-cl01 other 3.x linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(40)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-40">&#9656;</span></td>
+    <td class="vm-name">vSAN File Service Node (3)</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Other 3.x Linux (64-bit)</td>
+    <td>wd-esxi04.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">4 vCPU (4S x 1C)</td>
+    <td class="mono">8 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-40" data-row="40" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>kbbank-nfs</td><td class='mono'>00:50:56:b5:f5:3c</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (3)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>48</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (LsiLogic)</td><td class='mono'>0:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>0.06</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (LsiLogic)</td><td class='mono'>0:1</td><td>-</td></tr><tr><td>Hard disk 3</td><td>30</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (LsiLogic)</td><td class='mono'>0:2</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-21</td></tr>
+                    <tr><td>CPU Hot Add</td><td>True</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>True</td></tr>
+                    <tr><td>Memory Hot Add</td><td>True</td></tr>
+                    <tr><td>VM Tools Version</td><td>13312</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="41" data-search="vsan file service node (4) wd-esxi03.vcf.local wd-hcs-cl01 other 3.x linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(41)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-41">&#9656;</span></td>
+    <td class="vm-name">vSAN File Service Node (4)</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Other 3.x Linux (64-bit)</td>
+    <td>wd-esxi03.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">4 vCPU (4S x 1C)</td>
+    <td class="mono">8 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-41" data-row="41" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>kbbank-nfs</td><td class='mono'>00:50:56:b5:ef:f2</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (3)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>48</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (LsiLogic)</td><td class='mono'>0:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>0.06</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (LsiLogic)</td><td class='mono'>0:1</td><td>-</td></tr><tr><td>Hard disk 3</td><td>30</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (LsiLogic)</td><td class='mono'>0:2</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-21</td></tr>
+                    <tr><td>CPU Hot Add</td><td>True</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>True</td></tr>
+                    <tr><td>Memory Hot Add</td><td>True</td></tr>
+                    <tr><td>VM Tools Version</td><td>13312</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="42" data-search="wd-edge01 wd-esxi01.vcf.local wd-hcs-cl01 ubuntu linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(42)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-42">&#9656;</span></td>
+    <td class="vm-name">wd-edge01</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Ubuntu Linux (64-bit)</td>
+    <td>wd-esxi01.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">8 vCPU (1S x 8C)</td>
+    <td class="mono">32 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-42" data-row="42" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (5)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>wd-hcs-cl01-vds-01-pg-mgmt</td><td class='mono'>00:50:56:b5:87:44</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 2</td><td>Vmxnet3</td><td>wd-edge01-fp-eth0-Y7O5LKw3m0</td><td class='mono'>00:50:56:b5:a0:27</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 3</td><td>Vmxnet3</td><td>wd-edge01-fp-eth1-tNjbI8jEeQ</td><td class='mono'>00:50:56:b5:44:3e</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 4</td><td>Vmxnet3</td><td>none</td><td class='mono'>00:50:56:b5:6d:f7</td><td><span class='badge badge-gray-outline'>Disconnected</span></td></tr><tr><td>Network adapter 5</td><td>Vmxnet3</td><td>none</td><td class='mono'>00:50:56:b5:c8:54</td><td><span class='badge badge-gray-outline'>Disconnected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>197</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (LsiLogic)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>12421</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="43" data-search="wd-edge02 wd-esxi01.vcf.local wd-hcs-cl01 ubuntu linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(43)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-43">&#9656;</span></td>
+    <td class="vm-name">wd-edge02</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Ubuntu Linux (64-bit)</td>
+    <td>wd-esxi01.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">16 vCPU (1S x 16C)</td>
+    <td class="mono">64 GB</td>
+    <td><span class='badge badge-navy'>Likely Enabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-43" data-row="43" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (5)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>wd-hcs-cl01-vds-01-pg-mgmt</td><td class='mono'>00:50:56:b5:bf:1c</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 2</td><td>Vmxnet3</td><td>wd-edge02-fp-eth0-290Qldc4ZD</td><td class='mono'>00:50:56:b5:05:8c</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 3</td><td>Vmxnet3</td><td>wd-edge02-fp-eth1-155vPvobKa</td><td class='mono'>00:50:56:b5:3f:d6</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 4</td><td>Vmxnet3</td><td>none</td><td class='mono'>00:50:56:b5:bf:7b</td><td><span class='badge badge-gray-outline'>Disconnected</span></td></tr><tr><td>Network adapter 5</td><td>Vmxnet3</td><td>none</td><td class='mono'>00:50:56:b5:22:4f</td><td><span class='badge badge-gray-outline'>Disconnected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>197</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (LsiLogic)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>12421</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="44" data-search="wd-edge03 wd-esxi04.vcf.local wd-hcs-cl01 ubuntu linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(44)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-44">&#9656;</span></td>
+    <td class="vm-name">wd-edge03</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Ubuntu Linux (64-bit)</td>
+    <td>wd-esxi04.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">4 vCPU (1S x 4C)</td>
+    <td class="mono">8 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-44" data-row="44" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (5)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>wd-hcs-cl01-vds-01-pg-mgmt</td><td class='mono'>00:50:56:b5:27:a9</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 2</td><td>Vmxnet3</td><td>wd-edge03-fp-eth0</td><td class='mono'>00:50:56:b5:e1:43</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 3</td><td>Vmxnet3</td><td>wd-edge03-fp-eth1</td><td class='mono'>00:50:56:b5:45:9d</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 4</td><td>Vmxnet3</td><td>none</td><td class='mono'>00:50:56:b5:62:0d</td><td><span class='badge badge-gray-outline'>Disconnected</span></td></tr><tr><td>Network adapter 5</td><td>Vmxnet3</td><td>none</td><td class='mono'>00:50:56:b5:d8:1d</td><td><span class='badge badge-gray-outline'>Disconnected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>197</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (LsiLogic)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>12421</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="45" data-search="wd-edge04 wd-esxi04.vcf.local wd-hcs-cl01 ubuntu linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(45)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-45">&#9656;</span></td>
+    <td class="vm-name">wd-edge04</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Ubuntu Linux (64-bit)</td>
+    <td>wd-esxi04.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">4 vCPU (1S x 4C)</td>
+    <td class="mono">8 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-45" data-row="45" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (5)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>wd-hcs-cl01-vds-01-pg-mgmt</td><td class='mono'>00:50:56:b5:f0:bb</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 2</td><td>Vmxnet3</td><td>wd-edge04-fp-eth0-faQ41f0CWM</td><td class='mono'>00:50:56:b5:df:e5</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 3</td><td>Vmxnet3</td><td>wd-edge04-fp-eth1-Wyuuox9GzW</td><td class='mono'>00:50:56:b5:1c:e6</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 4</td><td>Vmxnet3</td><td>none</td><td class='mono'>00:50:56:b5:01:09</td><td><span class='badge badge-gray-outline'>Disconnected</span></td></tr><tr><td>Network adapter 5</td><td>Vmxnet3</td><td>none</td><td class='mono'>00:50:56:b5:ac:4a</td><td><span class='badge badge-gray-outline'>Disconnected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>197</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (LsiLogic)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>12421</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="46" data-search="wd-harbor wd-esxi03.vcf.local wd-hcs-cl01 vmware photon os (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(46)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-46">&#9656;</span></td>
+    <td class="vm-name">wd-harbor</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>VMware Photon OS (64-bit)</td>
+    <td>wd-esxi03.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">4 vCPU (2S x 2C)</td>
+    <td class="mono">8 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-46" data-row="46" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>wd-hcs-cl01-vds-01-pg-mgmt</td><td class='mono'>00:50:56:b5:5a:36</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (2)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>20</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>40</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:1</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-15</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>12389</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="47" data-search="wd-vks01-cgcrk-txwph wd-esxi04.vcf.local wd-hcs-cl01 ubuntu linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(47)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-47">&#9656;</span></td>
+    <td class="vm-name">wd-vks01-cgcrk-txwph</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Ubuntu Linux (64-bit)</td>
+    <td>wd-esxi04.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">2 vCPU (1S x 2C)</td>
+    <td class="mono">8 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-47" data-row="47" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>wd-vks01-gj8lb-b178b800_6c6e2</td><td class='mono'>04:50:56:00:80:00</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>20</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>2147483647</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="48" data-search="wd-vks01-node-pool-1-jkbbf-tqgjf-p7phk wd-esxi04.vcf.local wd-hcs-cl01 ubuntu linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(48)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-48">&#9656;</span></td>
+    <td class="vm-name">wd-vks01-node-pool-1-jkbbf-tqgjf-p7phk</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Ubuntu Linux (64-bit)</td>
+    <td>wd-esxi04.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">2 vCPU (1S x 2C)</td>
+    <td class="mono">8 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-48" data-row="48" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>wd-vks01-gj8lb-b178b800_6c6e2</td><td class='mono'>04:50:56:00:fc:00</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>20</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>2147483647</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="49" data-search="wd-vks01-node-pool-1-jkbbf-tqgjf-wv7bq wd-esxi03.vcf.local wd-hcs-cl01 ubuntu linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(49)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-49">&#9656;</span></td>
+    <td class="vm-name">wd-vks01-node-pool-1-jkbbf-tqgjf-wv7bq</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Ubuntu Linux (64-bit)</td>
+    <td>wd-esxi03.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">2 vCPU (1S x 2C)</td>
+    <td class="mono">8 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-49" data-row="49" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>wd-vks01-gj8lb-b178b800_6c6e2</td><td class='mono'>04:50:56:00:50:00</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>20</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>2147483647</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="50" data-search="wsn-bastion wd-esxi04.vcf.local wd-hcs-cl01 ubuntu linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(50)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-50">&#9656;</span></td>
+    <td class="vm-name">wsn-bastion</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Ubuntu Linux (64-bit)</td>
+    <td>wd-esxi04.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">4 vCPU (1S x 4C)</td>
+    <td class="mono">8 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-50" data-row="50" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>WSN-PG-MGMT-10.100.197.x</td><td class='mono'>00:50:56:b5:42:2b</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (2)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>500</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>500</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:1</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>True</td></tr>
+                    <tr><td>VM Tools Version</td><td>13312</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="51" data-search="wsn-vyos wd-esxi03.vcf.local wd-hcs-cl01 vyos" data-cluster="WD-HCS-cl01" data-power="poweredOff" data-rdm="False" data-iso="False" data-tools="True" onclick="toggleDetail(51)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-51">&#9656;</span></td>
+    <td class="vm-name">wsn-vyos</td>
+    <td><span class='badge badge-gray'>poweredOff</span></td>
+    <td>VyOS</td>
+    <td>wd-esxi03.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">2 vCPU (2S x 1C)</td>
+    <td class="mono">2 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-amber'>toolsNotInstalled</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-51" data-row="51" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (2)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>E1000e</td><td>WSN-PG-MGMT-10.100.197.x</td><td class='mono'>00:50:56:b5:6e:5d</td><td><span class='badge badge-gray-outline'>Disconnected</span></td></tr><tr><td>Network adapter 2</td><td>E1000e</td><td>WSN-PG-TRUNK</td><td class='mono'>00:50:56:b5:1d:89</td><td><span class='badge badge-gray-outline'>Disconnected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>10</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (LsiLogic)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>True</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>True</td></tr>
+                    <tr><td>VM Tools Version</td><td>0</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="52" data-search="yr-depot wd-esxi03.vcf.local wd-hcs-cl01 ubuntu linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="True" data-tools="False" onclick="toggleDetail(52)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-52">&#9656;</span></td>
+    <td class="vm-name">yr-depot</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Ubuntu Linux (64-bit)</td>
+    <td>wd-esxi03.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">4 vCPU (1S x 4C)</td>
+    <td class="mono">8 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-amber'>ISO 1</span></td>
+</tr>
+<tr class="detail-row" id="detail-52" data-row="52" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>DVPortgroup (dvportgroup-995)</td><td class='mono'>00:50:56:b5:84:44</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>2048</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <table class='detail-table'><thead><tr><th>드라이브</th><th>ISO 경로</th><th>연결상태</th></tr></thead><tbody><tr><td>CD/DVD drive 1</td><td class='mono small'>[HCS-TrueNAS-iSCSI] ISO-Archive/Linux/Ubuntu/22.04/Server/ubuntu-22.04.2-live-server-amd64.iso</td><td><span class='badge badge-gray-outline'>Disconnected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>12389</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="53" data-search="yr-dns wd-esxi04.vcf.local wd-hcs-cl01 ubuntu linux (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="False" data-tools="False" onclick="toggleDetail(53)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-53">&#9656;</span></td>
+    <td class="vm-name">yr-dns</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>Ubuntu Linux (64-bit)</td>
+    <td>wd-esxi04.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">2 vCPU (1S x 2C)</td>
+    <td class="mono">4 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-53" data-row="53" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>DVPortgroup (dvportgroup-995)</td><td class='mono'>00:50:56:b5:4c:2c</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>40</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>12389</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="54" data-search="yr-esxi01 wd-esxi02.vcf.local wd-hcs-cl01 vmware esxi 9.0 or later" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="True" data-tools="False" onclick="toggleDetail(54)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-54">&#9656;</span></td>
+    <td class="vm-name">yr-esxi01</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>VMware ESXi 9.0 or later</td>
+    <td>wd-esxi02.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">16 vCPU (1S x 16C)</td>
+    <td class="mono">128 GB</td>
+    <td><span class='badge badge-navy'>Likely Enabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-amber'>ISO 1</span></td>
+</tr>
+<tr class="detail-row" id="detail-54" data-row="54" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (2)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>DVPortgroup (dvportgroup-995)</td><td class='mono'>00:50:56:b5:1c:a0</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 2</td><td>Vmxnet3</td><td>DVPortgroup (dvportgroup-1015)</td><td class='mono'>00:50:56:b5:38:b9</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (4)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>50</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>100</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:1</td><td>-</td></tr><tr><td>Hard disk 3</td><td>200</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:2</td><td>-</td></tr><tr><td>Hard disk 4</td><td>400</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:3</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <table class='detail-table'><thead><tr><th>드라이브</th><th>ISO 경로</th><th>연결상태</th></tr></thead><tbody><tr><td>CD/DVD drive 1</td><td class='mono small'>[HCS-TrueNAS-iSCSI] ISO-Archive/VMware/ESXi/9/VMware-VMvisor-Installer-9.0.2.0.25148076.x86_64.iso</td><td><span class='badge badge-amber'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>13322</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="55" data-search="yr-esxi02 wd-esxi02.vcf.local wd-hcs-cl01 vmware esxi 9.0 or later" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="True" data-tools="False" onclick="toggleDetail(55)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-55">&#9656;</span></td>
+    <td class="vm-name">yr-esxi02</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>VMware ESXi 9.0 or later</td>
+    <td>wd-esxi02.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">16 vCPU (1S x 16C)</td>
+    <td class="mono">128 GB</td>
+    <td><span class='badge badge-navy'>Likely Enabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-amber'>ISO 1</span></td>
+</tr>
+<tr class="detail-row" id="detail-55" data-row="55" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>DVPortgroup (dvportgroup-995)</td><td class='mono'>00:50:56:b5:45:b8</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (4)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>50</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>100</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:1</td><td>-</td></tr><tr><td>Hard disk 3</td><td>200</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:2</td><td>-</td></tr><tr><td>Hard disk 4</td><td>400</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:3</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <table class='detail-table'><thead><tr><th>드라이브</th><th>ISO 경로</th><th>연결상태</th></tr></thead><tbody><tr><td>CD/DVD drive 1</td><td class='mono small'>[HCS-TrueNAS-iSCSI] ISO-Archive/VMware/ESXi/9/VMware-VMvisor-Installer-9.0.2.0.25148076.x86_64.iso</td><td><span class='badge badge-amber'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>13322</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="56" data-search="yr-esxi03 wd-esxi03.vcf.local wd-hcs-cl01 vmware esxi 9.0 or later" data-cluster="WD-HCS-cl01" data-power="poweredOn" data-rdm="False" data-iso="True" data-tools="False" onclick="toggleDetail(56)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-56">&#9656;</span></td>
+    <td class="vm-name">yr-esxi03</td>
+    <td><span class='badge badge-teal'>poweredOn</span></td>
+    <td>VMware ESXi 9.0 or later</td>
+    <td>wd-esxi03.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">16 vCPU (1S x 16C)</td>
+    <td class="mono">128 GB</td>
+    <td><span class='badge badge-navy'>Likely Enabled (추정)</span></td>
+    <td><span class='badge badge-teal-outline'>toolsOk</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-amber'>ISO 1</span></td>
+</tr>
+<tr class="detail-row" id="detail-56" data-row="56" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (2)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>DVPortgroup (dvportgroup-995)</td><td class='mono'>00:50:56:b5:1e:82</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr><tr><td>Network adapter 2</td><td>Vmxnet3</td><td>DVPortgroup (dvportgroup-1015)</td><td class='mono'>00:50:56:b5:5f:7a</td><td><span class='badge badge-teal-outline'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (4)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>50</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>100</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:1</td><td>-</td></tr><tr><td>Hard disk 3</td><td>200</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:2</td><td>-</td></tr><tr><td>Hard disk 4</td><td>400</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>N/A (N/A)</td><td class='mono'>N/A:3</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <table class='detail-table'><thead><tr><th>드라이브</th><th>ISO 경로</th><th>연결상태</th></tr></thead><tbody><tr><td>CD/DVD drive 1</td><td class='mono small'>[HCS-TrueNAS-iSCSI] ISO-Archive/VMware/ESXi/9/VMware-VMvisor-Installer-9.0.2.0.25148076.x86_64.iso</td><td><span class='badge badge-amber'>Connected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-22</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>13322</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="57" data-search="yr-esxi-7-temp wd-esxi04.vcf.local wd-hcs-cl01 vmware esxi 7.x" data-cluster="WD-HCS-cl01" data-power="poweredOff" data-rdm="False" data-iso="False" data-tools="True" onclick="toggleDetail(57)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-57">&#9656;</span></td>
+    <td class="vm-name">YR-ESXi-7-Temp</td>
+    <td><span class='badge badge-gray'>poweredOff</span></td>
+    <td>VMware ESXi 7.x</td>
+    <td>wd-esxi04.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">24 vCPU (12S x 2C)</td>
+    <td class="mono">64 GB</td>
+    <td><span class='badge badge-navy'>Likely Enabled (추정)</span></td>
+    <td><span class='badge badge-amber'>toolsNotRunning</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-57" data-row="57" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>DVPortgroup (dvportgroup-1015)</td><td class='mono'>00:50:56:b5:e5:f7</td><td><span class='badge badge-gray-outline'>Disconnected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (1)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>50</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (ParaSCSI)</td><td class='mono'>0:0</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-17</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>12325</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr><tr class="vm-row" data-row="58" data-search="yr-installer wd-esxi01.vcf.local wd-hcs-cl01 vmware photon os (64-bit)" data-cluster="WD-HCS-cl01" data-power="poweredOff" data-rdm="False" data-iso="False" data-tools="True" onclick="toggleDetail(58)">
+    <td class="chevron-cell"><span class="chevron" id="chevron-58">&#9656;</span></td>
+    <td class="vm-name">yr-installer</td>
+    <td><span class='badge badge-gray'>poweredOff</span></td>
+    <td>VMware Photon OS (64-bit)</td>
+    <td>wd-esxi01.vcf.local</td>
+    <td>WD-HCS-cl01</td>
+    <td class="mono">4 vCPU (4S x 1C)</td>
+    <td class="mono">16 GB</td>
+    <td><span class='badge badge-gray-outline'>Likely Disabled (추정)</span></td>
+    <td><span class='badge badge-amber'>toolsNotRunning</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+    <td><span class='badge badge-gray-outline'>None</span></td>
+</tr>
+<tr class="detail-row" id="detail-58" data-row="58" style="display:none;">
+    <td colspan="12">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <h4>Network Adapters (1)</h4>
+                <table class='detail-table'><thead><tr><th>어댑터</th><th>타입</th><th>포트그룹</th><th>MAC</th><th>연결상태</th></tr></thead><tbody><tr><td>Network adapter 1</td><td>Vmxnet3</td><td>DVPortgroup (dvportgroup-995)</td><td class='mono'>00:50:56:9d:89:c1</td><td><span class='badge badge-gray-outline'>Disconnected</span></td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>Virtual Disks (6)</h4>
+                <table class='detail-table'><thead><tr><th>디스크</th><th>크기(GB)</th><th>타입</th><th>데이터스토어</th><th>컨트롤러</th><th>Bus:Unit</th><th>RDM</th></tr></thead><tbody><tr><td>Hard disk 1</td><td>32</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (LsiLogic)</td><td class='mono'>0:0</td><td>-</td></tr><tr><td>Hard disk 2</td><td>16</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (LsiLogic)</td><td class='mono'>0:1</td><td>-</td></tr><tr><td>Hard disk 3</td><td>240</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (LsiLogic)</td><td class='mono'>0:2</td><td>-</td></tr><tr><td>Hard disk 4</td><td>512</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (LsiLogic)</td><td class='mono'>0:3</td><td>-</td></tr><tr><td>Hard disk 5</td><td>26</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (LsiLogic)</td><td class='mono'>0:4</td><td>-</td></tr><tr><td>Hard disk 6</td><td>88</td><td><span class='badge badge-teal-outline'>Thin</span></td><td>WD-HCS-cl01-vsan01</td><td>SCSI controller 0 (LsiLogic)</td><td class='mono'>0:5</td><td>-</td></tr></tbody></table>
+            </div>
+            <div class="detail-section">
+                <h4>ISO Mount</h4>
+                <p class='empty-note'>마운트된 ISO 없음</p>
+            </div>
+            <div class="detail-section detail-meta">
+                <h4>추가 정보</h4>
+                <table class="meta-table">
+                    <tr><td>HW Version</td><td>vmx-13</td></tr>
+                    <tr><td>CPU Hot Add</td><td>False</td></tr>
+                    <tr><td>CPU Hot Remove</td><td>False</td></tr>
+                    <tr><td>Memory Hot Add</td><td>False</td></tr>
+                    <tr><td>VM Tools Version</td><td>2147483647</td></tr>
+                </table>
+            </div>
+        </div>
+    </td>
+</tr>
+        </tbody>
+    </table>
+
+</div>
+
+<footer>Get-VMSpecification.ps1 / Generate-VMSpecReport.ps1 로 생성됨 &nbsp;|&nbsp; vNUMA 상태는 VMware 기본 동작 규칙 기반 추정치이며 확정값이 아닙니다.</footer>
+
+<script>
+function toggleDetail(rowId) {
+    var detailRow = document.getElementById('detail-' + rowId);
+    var chevron = document.getElementById('chevron-' + rowId);
+    if (detailRow.style.display === 'none') {
+        detailRow.style.display = 'table-row';
+        chevron.classList.add('open');
+    } else {
+        detailRow.style.display = 'none';
+        chevron.classList.remove('open');
+    }
+}
+
+function applyFilters() {
+    var search = document.getElementById('searchBox').value.toLowerCase();
+    var clusterEl = document.getElementById('clusterFilter');
+    var cluster = clusterEl ? clusterEl.value : '';
+    var power = document.getElementById('powerFilter').value;
+    var rdm = document.getElementById('rdmFilter').value;
+    var iso = document.getElementById('isoFilter').value;
+    var tools = document.getElementById('toolsFilter').value;
+
+    var rows = document.querySelectorAll('.vm-row');
+    var visibleCount = 0;
+
+    rows.forEach(function(row) {
+        var rowId = row.getAttribute('data-row');
+        var detailRow = document.getElementById('detail-' + rowId);
+        var matches = true;
+
+        if (search && row.getAttribute('data-search').indexOf(search) === -1) { matches = false; }
+        if (cluster && row.getAttribute('data-cluster') !== cluster) { matches = false; }
+        if (power && row.getAttribute('data-power') !== power) { matches = false; }
+        if (rdm && row.getAttribute('data-rdm') !== rdm) { matches = false; }
+        if (iso && row.getAttribute('data-iso') !== iso) { matches = false; }
+        if (tools && row.getAttribute('data-tools') !== tools) { matches = false; }
+
+        if (matches) {
+            row.style.display = 'table-row';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+            detailRow.style.display = 'none';
+            document.getElementById('chevron-' + rowId).classList.remove('open');
+        }
+    });
+
+    document.getElementById('resultCount').innerText = visibleCount + ' / ' + rows.length + ' VM 표시 중';
+}
+
+document.addEventListener('DOMContentLoaded', applyFilters);
+</script>
+
+</body>
+</html>

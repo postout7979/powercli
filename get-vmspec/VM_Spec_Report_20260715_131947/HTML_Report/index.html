@@ -1,0 +1,80 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>VM Specification Report - Index</title>
+<style>
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        font-family: 'Segoe UI', 'Malgun Gothic', -apple-system, sans-serif;
+        background: #f7f9fb;
+        color: #1f2937;
+    }
+    header {
+        background: linear-gradient(135deg, #0b2545 0%, #13355e 100%);
+        color: #fff;
+        padding: 32px 36px;
+    }
+    header h1 { margin: 0 0 6px 0; font-size: 22px; }
+    header p { margin: 0; font-size: 13px; color: #c7d3e0; }
+    .container { padding: 28px 36px 60px 36px; }
+    .index-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 16px;
+    }
+    .index-card {
+        display: block;
+        background: #fff;
+        border-radius: 10px;
+        padding: 18px 20px;
+        text-decoration: none;
+        color: #1f2937;
+        box-shadow: 0 2px 10px rgba(11,37,69,0.08);
+        border-top: 3px solid #0f9b8e;
+        transition: transform 0.1s ease;
+    }
+    .index-card:hover { transform: translateY(-2px); }
+    .index-card.highlight { border-top-color: #d98c1f; }
+    .index-card-title { font-size: 15px; font-weight: 700; color: #0b2545; margin-bottom: 8px; }
+    .index-card-stats { font-size: 12px; color: #6b7280; }
+    .index-card-stats .dot { margin: 0 6px; }
+    footer { text-align: center; padding: 20px; font-size: 11px; color: #6b7280; }
+</style>
+</head>
+<body>
+
+<header>
+    <h1>VM Specification Report</h1>
+    <p>생성 시각: 2026-07-15 13:52:33 &nbsp;|&nbsp; 데이터 소스: C:\powercli\posco\VM_Spec_Report_20260715_131947 &nbsp;|&nbsp; 총 VM: 58 대 &nbsp;|&nbsp; 클러스터: 1 개</p>
+</header>
+
+<div class="container">
+    <div class="index-grid">
+<a class="index-card highlight" href="VM_Spec_Report_All.html">
+    <div class="index-card-title">전체 (All Clusters)</div>
+    <div class="index-card-stats">
+        <span>VM 58</span>
+        <span class="dot">&middot;</span>
+        <span>RDM 0</span>
+        <span class="dot">&middot;</span>
+        <span>ISO 19</span>
+    </div>
+</a><a class="index-card" href="VM_Spec_Report_WD-HCS-cl01.html">
+    <div class="index-card-title">WD-HCS-cl01</div>
+    <div class="index-card-stats">
+        <span>VM 58</span>
+        <span class="dot">&middot;</span>
+        <span>RDM 0</span>
+        <span class="dot">&middot;</span>
+        <span>ISO 19</span>
+    </div>
+</a>
+    </div>
+</div>
+
+<footer>Get-VMSpecification.ps1 / Generate-VMSpecReport.ps1 로 생성됨</footer>
+
+</body>
+</html>
