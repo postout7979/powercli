@@ -4,7 +4,7 @@
 
 | 스크립트 | 역할 |
 |---|---|
-| `vcf9-precheck-script-cs.ps1` | vCenter에 접속해서 인벤토리 수집 + HCL 호환성 검사 |
+| `vcf9-precheck-script-cs.ps1` | vCenter에 접속해서 인벤토리 수집  |
 | `vcf9-hcl-check.ps1` | 이미 수집된 인벤토리 폴더를 대상으로 HCL 호환성 검사만 독립 실행 |
 
 ---
