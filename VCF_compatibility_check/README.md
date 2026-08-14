@@ -257,3 +257,9 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 - CPU 세대 판정 시 Intel Xeon Gold 6300번대처럼 여러 마이크로아키텍처가 같은 번호대를 공유하는 경우 정확한 구분이 어려울 수 있습니다.
 - `ESX_Memory_Page.csv`의 `NVMe_Tiering_Candidate = Yes`는 1차 스크리닝 기준(`Cold ≥ 1GB, Cold 비율 ≥ 20%`)이며, 실제 NVMe 티어링 적용 여부는 추가 검토가 필요합니다.
 - 모든 스크립트는 읽기 전용 조회만 수행하며, vCenter/ESXi 설정을 변경하지 않습니다.
+
+호환성 리스트 결과물 예제
+<img width="238" height="244" alt="image" src="https://github.com/user-attachments/assets/281edd50-7c4b-4c1c-999b-ed946ce39933" />
+<img width="1949" height="929" alt="image" src="https://github.com/user-attachments/assets/1ff7d3d9-316b-45ea-885a-8548abc8aa0b" />
+<img width="1947" height="1166" alt="image" src="https://github.com/user-attachments/assets/024dc313-7bba-46a7-8c72-287caa5f4ca0" />
+
