@@ -1,5 +1,6 @@
 스크립트 수행
 
+```
 PS C:\powercli\vcf upgrade> .\vcf9-precheck-toolkit.ps1                                                                 
 ===============================================================================                                                             
 VCF 9 Pre-check Integrated Tool                                                                     
@@ -95,7 +96,7 @@ Output Folder: C:\powercli\vcf upgrade\vSphere_Inventory_20260827_1517
   Compatibility results folder : C:\powercli\vcf upgrade\compatibility_20260827_1518
   Zip archive                  : C:\powercli\vcf upgrade\VCF9_Precheck_20260827_1519.zip
 PS C:\powercli\vcf upgrade>
-
+```
 
 <img width="702" height="186" alt="image" src="https://github.com/user-attachments/assets/3168ff0c-6e59-4be4-b0db-f658c6f69f65" />
 
