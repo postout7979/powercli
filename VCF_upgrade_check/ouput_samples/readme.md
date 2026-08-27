@@ -1,4 +1,4 @@
-##스크립트 수행 예제 및 결과
+### 스크립트 수행 예제 및 결과
 
 ```
 PS C:\powercli\vcf upgrade> .\vcf9-precheck-toolkit.ps1                                                                 
@@ -97,13 +97,13 @@ Output Folder: C:\powercli\vcf upgrade\vSphere_Inventory_20260827_1517
   Zip archive                  : C:\powercli\vcf upgrade\VCF9_Precheck_20260827_1519.zip
 PS C:\powercli\vcf upgrade>
 ```
-
+### ZIP 파일 및 폴더 생성
 <img width="702" height="186" alt="image" src="https://github.com/user-attachments/assets/3168ff0c-6e59-4be4-b0db-f658c6f69f65" />
-
+### compatibility folder
 <img width="670" height="185" alt="image" src="https://github.com/user-attachments/assets/311fd128-2d2d-4d03-8f48-9e8cbd5b9517" />
-
+### Summary html 파일
 <img width="1969" height="931" alt="image" src="https://github.com/user-attachments/assets/14d4a88d-6c07-4554-8136-4369c26be7e0" />
-
+### 클러스터 html 파일
 <img width="1980" height="1097" alt="image" src="https://github.com/user-attachments/assets/4cb27479-e131-4b0d-b28d-11a3e84ab396" />
 
 
