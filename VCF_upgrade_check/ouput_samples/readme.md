@@ -1,4 +1,4 @@
-스크립트 수행
+##스크립트 수행 예제 및 결과
 
 ```
 PS C:\powercli\vcf upgrade> .\vcf9-precheck-toolkit.ps1                                                                 
